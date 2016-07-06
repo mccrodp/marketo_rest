@@ -1,4 +1,4 @@
-* Non functional development sandbox for new marketo_rest module *
+**Non functional development sandbox for new marketo_rest module**
 
 # Marketo MA
 
