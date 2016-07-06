@@ -2,13 +2,13 @@
 
 /**
  * @file
- * Default rules for Marketo MA
+ * Default rules for Marketo REST
  */
 
 /**
  * Implements hook_default_rules_configuration().
  */
-function marketo_ma_default_rules_configuration() {
+function marketo_rest_default_rules_configuration() {
   $config = array();
 
   $rules = array();
@@ -18,7 +18,7 @@ function marketo_ma_default_rules_configuration() {
     "PLUGIN" : "reaction rule",
     "ACTIVE" : false,
     "TAGS" : [ "Marketo" ],
-    "REQUIRES" : [ "rules", "marketo_ma" ],
+    "REQUIRES" : [ "rules", "marketo_rest" ],
     "ON" : [ "user_insert" ],
     "DO" : [
       { "variable_add" : {
@@ -27,7 +27,7 @@ function marketo_ma_default_rules_configuration() {
         }
       },
       { "list_add" : { "list" : [ "marketoparams" ], "item" : "Email|[account:mail]" } },
-      { "marketo_ma_rules_action_add_lead" : { "account" : [ "account" ], "data" : [ "marketoparams" ] } }
+      { "marketo_rest_rules_action_add_lead" : { "account" : [ "account" ], "data" : [ "marketoparams" ] } }
     ]
   }
 }
@@ -39,7 +39,7 @@ EOD;
     "PLUGIN" : "reaction rule",
     "ACTIVE" : false,
     "TAGS" : [ "Marketo" ],
-    "REQUIRES" : [ "rules", "marketo_ma" ],
+    "REQUIRES" : [ "rules", "marketo_rest" ],
     "ON" : [ "user_login" ],
     "DO" : [
       { "variable_add" : {
@@ -48,7 +48,7 @@ EOD;
         }
       },
       { "list_add" : { "list" : [ "marketoparams" ], "item" : "Email|[account:mail]" } },
-      { "marketo_ma_rules_action_add_lead" : { "account" : [ "site:current-user" ], "data" : [ "marketoparams" ] } }
+      { "marketo_rest_rules_action_add_lead" : { "account" : [ "site:current-user" ], "data" : [ "marketoparams" ] } }
     ]
   }
 }
@@ -60,7 +60,7 @@ EOD;
     "PLUGIN" : "reaction rule",
     "ACTIVE" : false,
     "TAGS" : [ "Marketo" ],
-    "REQUIRES" : [ "rules", "marketo_ma" ],
+    "REQUIRES" : [ "rules", "marketo_rest" ],
     "ON" : [ "user_update" ],
     "DO" : [
       { "variable_add" : {
@@ -69,7 +69,7 @@ EOD;
         }
       },
       { "list_add" : { "list" : [ "marketoparams" ], "item" : "Email|[account:mail]" } },
-      { "marketo_ma_rules_action_add_lead" : { "account" : [ "account" ], "data" : [ "marketoparams" ] } }
+      { "marketo_rest_rules_action_add_lead" : { "account" : [ "account" ], "data" : [ "marketoparams" ] } }
     ]
   }
 }

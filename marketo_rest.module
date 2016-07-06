@@ -2,33 +2,33 @@
 
 /**
  * @file
- * Module functions for Marketo MA.
+ * Module functions for Marketo REST.
  */
 
-define('MARKETO_MA_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");
-define('MARKETO_MA_TRACKING_METHOD_DEFAULT', 'munchkin');
-define('MARKETO_MA_WEBFORM_FIELD_DEFAULTS', "FirstName|First Name\nLastName|Last Name\nEmail|Email Address");
+define('MARKETO_REST_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");
+define('MARKETO_REST_TRACKING_METHOD_DEFAULT', 'munchkin');
+define('MARKETO_REST_WEBFORM_FIELD_DEFAULTS', "FirstName|First Name\nLastName|Last Name\nEmail|Email Address");
 
-define('MARKETO_MA_SCHEMA_WEBFORM', 'marketo_ma_webform');
-define('MARKETO_MA_WEBFORM_FIELD_ACTIVE', 'is_active');
-define('MARKETO_MA_WEBFORM_OPTIONS', 'options');
+define('MARKETO_REST_SCHEMA_WEBFORM', 'marketo_rest_webform');
+define('MARKETO_REST_WEBFORM_FIELD_ACTIVE', 'is_active');
+define('MARKETO_REST_WEBFORM_OPTIONS', 'options');
 
-define('MARKETO_MA_SCHEMA_WEBFORM_COMPONENT', 'marketo_ma_webform_component');
-define('MARKETO_MA_WEBFORM_COMPONENT_KEY', 'marketo_ma_key');
-define('MARKETO_MA_WEBFORM_COMPONENT_NONE', 'none');
+define('MARKETO_REST_SCHEMA_WEBFORM_COMPONENT', 'marketo_rest_webform_component');
+define('MARKETO_REST_WEBFORM_COMPONENT_KEY', 'marketo_rest_key');
+define('MARKETO_REST_WEBFORM_COMPONENT_NONE', 'none');
 
 /**
  * Implements hook_menu().
  */
-function marketo_ma_menu() {
+function marketo_rest_menu() {
   // Module settings.
-  $items['admin/config/search/marketo_ma'] = array(
+  $items['admin/config/search/marketo_rest'] = array(
     'title' => 'Marketo MA',
-    'description' => 'Marketo MA configuration',
+    'description' => 'Marketo REST configuration',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('marketo_ma_admin_settings_form'),
+    'page arguments' => array('marketo_rest_admin_settings_form'),
     'access arguments' => array('administer marketo'),
-    'file' => 'includes/marketo_ma.admin.inc',
+    'file' => 'includes/marketo_rest.admin.inc',
   );
   return $items;
 }
@@ -36,7 +36,7 @@ function marketo_ma_menu() {
 /**
  * Implements hook_permission().
  */
-function marketo_ma_permission() {
+function marketo_rest_permission() {
   return array(
     'administer marketo' => array(
       'title' => t('Administer Marketo MA'),
@@ -48,10 +48,10 @@ function marketo_ma_permission() {
 /**
  * Implements hook_cron_queue_info().
  */
-function marketo_ma_cron_queue_info() {
+function marketo_rest_cron_queue_info() {
   $queues = array();
-  $queues['marketo_ma_lead'] = array(
-    'worker callback' => '_marketo_ma_associate_lead_soap',
+  $queues['marketo_rest_lead'] = array(
+    'worker callback' => '_marketo_rest_associate_lead_soap',
     'time' => 30,
   );
   return $queues;
@@ -73,29 +73,29 @@ function marketo_ma_cron_queue_info() {
  * @return bool
  *   Returns TRUE upon completion
  */
-function marketo_ma_add_lead($email, $data = array(), $merge = FALSE, $options = array()) {
+function marketo_rest_add_lead($email, $data = array(), $merge = FALSE, $options = array()) {
   $options += array(
     'tracking_method' => 'default',
   );
 
-  $marketo_ma_data = array();
-  if (isset($_SESSION['marketo_ma_data'])) {
-    $marketo_ma_data = $_SESSION['marketo_ma_data'];
+  $marketo_rest_data = array();
+  if (isset($_SESSION['marketo_rest_data'])) {
+    $marketo_rest_data = $_SESSION['marketo_rest_data'];
   }
 
-  if ($merge && array_key_exists($email, $marketo_ma_data)) {
-    $marketo_ma_data[$email]['data'] = array_merge($marketo_ma_data[$email]['data'], $data);
+  if ($merge && array_key_exists($email, $marketo_rest_data)) {
+    $marketo_rest_data[$email]['data'] = array_merge($marketo_rest_data[$email]['data'], $data);
   }
   else {
-    $marketo_ma_data[$email]['data'] = $data;
+    $marketo_rest_data[$email]['data'] = $data;
   }
-  $marketo_ma_data[$email]['email'] = $email;
-  $marketo_ma_data[$email]['options'] = $options;
+  $marketo_rest_data[$email]['email'] = $email;
+  $marketo_rest_data[$email]['options'] = $options;
 
   // Check to see if there is a default lead source we should apply.
-  $source = variable_get('marketo_ma_munchkin_lead_source');
-  if (!array_key_exists('LeadSource', $marketo_ma_data[$email]['data']) && $source !== '') {
-    $marketo_ma_data[$email]['data']['LeadSource'] = $source;
+  $source = variable_get('marketo_rest_munchkin_lead_source');
+  if (!array_key_exists('LeadSource', $marketo_rest_data[$email]['data']) && $source !== '') {
+    $marketo_rest_data[$email]['data']['LeadSource'] = $source;
   }
 
   // If the user executing this method is anonymous or is actually the lead
@@ -103,80 +103,80 @@ function marketo_ma_add_lead($email, $data = array(), $merge = FALSE, $options =
   // activity associated with the cookie gets merged to the lead.
   global $user;
   if (($user->uid == 0 || $user->mail == $email) && isset($_COOKIE['_mkto_trk'])) {
-    $marketo_ma_data[$email]['marketoCookie'] = $_COOKIE['_mkto_trk'];
+    $marketo_rest_data[$email]['marketoCookie'] = $_COOKIE['_mkto_trk'];
   }
 
   // Provide modules an opportunity to modify data.
-  // hook_marketo_ma_lead_alter(&$data)
-  drupal_alter('marketo_ma_lead', $marketo_ma_data[$email]);
-  foreach ($marketo_ma_data[$email]['data'] as $key => $value) {
-    // hook_marketo_ma_lead_firstname_alter(&$data)
-    drupal_alter('marketo_ma_lead_' . $key, $marketo_ma_data[$email]['data'][$key]);
+  // hook_marketo_rest_lead_alter(&$data)
+  drupal_alter('marketo_rest_lead', $marketo_rest_data[$email]);
+  foreach ($marketo_rest_data[$email]['data'] as $key => $value) {
+    // hook_marketo_rest_lead_firstname_alter(&$data)
+    drupal_alter('marketo_rest_lead_' . $key, $marketo_rest_data[$email]['data'][$key]);
   }
 
-  $_SESSION['marketo_ma_data'] = $marketo_ma_data;
+  $_SESSION['marketo_rest_data'] = $marketo_rest_data;
   return TRUE;
 }
 
 /**
  * Retrieves queued data.
  */
-function marketo_ma_get_queue() {
+function marketo_rest_get_queue() {
   // Data looks like $queue[email] = array(key => value).
-  return (isset($_SESSION['marketo_ma_data'])) ? $_SESSION['marketo_ma_data'] : array();
+  return (isset($_SESSION['marketo_rest_data'])) ? $_SESSION['marketo_rest_data'] : array();
 }
 
 /**
  * Cleanup any mess we made or data we don't want to hold on to.
  */
-function _marketo_ma_cleanup() {
-  if (isset($_SESSION['marketo_ma_data'])) {
-    unset($_SESSION['marketo_ma_data']);
+function _marketo_rest_cleanup() {
+  if (isset($_SESSION['marketo_rest_data'])) {
+    unset($_SESSION['marketo_rest_data']);
   }
 }
 
 /**
  * Implements hook_page_alter().
  */
-function marketo_ma_page_alter(&$page) {
+function marketo_rest_page_alter(&$page) {
   global $user;
-  $marketo_ma_data = marketo_ma_get_queue();
+  $marketo_rest_data = marketo_rest_get_queue();
 
-  if ((_marketo_ma_visibility_pages() && _marketo_ma_visibility_roles($user)) || count($marketo_ma_data) > 0) {
+  if ((_marketo_rest_visibility_pages() && _marketo_rest_visibility_roles($user)) || count($marketo_rest_data) > 0) {
 
     /*
      * @todo handle case where visibility = false, count > 0, and
      * tracking type != munchkin.. we don't need any tracking in this case
      */
     // Basic Munchkin tracking.
-    _marketo_ma_output_tracking_code();
+    _marketo_rest_output_tracking_code();
 
-    foreach ($marketo_ma_data as $lead) {
+    foreach ($marketo_rest_data as $lead) {
       if (array_key_exists('email', $lead)) {
-        _marketo_ma_associate_lead($lead);
+        _marketo_rest_associate_lead($lead);
       }
     }
 
-    _marketo_ma_cleanup();
+    _marketo_rest_cleanup();
   }
 }
 
 /**
  * Adds basic tracking code to page.
  */
-function _marketo_ma_output_tracking_code() {
-  if (_marketo_ma_munchkin_is_configured()) {
-    $marketo_ma_munchkin_account_id = variable_get('marketo_ma_munchkin_account_id');
-    $marketo_ma_munchkin_javascript_library = '//' . str_replace(array(
+function _marketo_rest_output_tracking_code() {
+  if (_marketo_rest_munchkin_is_configured()) {
+    $marketo_rest_munchkin_account_id = variable_get('marketo_rest_munchkin_account_id');
+    $marketo_rest_munchkin_javascript_library = '//' . str_replace(array(
         'http://',
         'https://',
-        '//'), '', variable_get('marketo_ma_munchkin_javascript_library'));
+        '//'), '', variable_get('marketo_rest_munchkin_javascript_library'));
 
     drupal_add_js(array(
-      'marketo_ma' => array(
+      'marketo_rest' => array(
         'track' => TRUE,
-        'key' => $marketo_ma_munchkin_account_id,
-        'library' => $marketo_ma_munchkin_javascript_library),
+        'key' => $marketo_rest_munchkin_account_id,
+        'library' => $marketo_rest_munchkin_javascript_library),
       ), 'setting');
   }
 }
@@ -195,29 +195,29 @@ function _marketo_ma_output_tracking_code() {
  *     - tracking_method: 'default' or a string indicating which method to use
  *     - formid: Required when tracking_method is 'forms2'
  */
-function _marketo_ma_associate_lead($lead) {
-  $track = variable_get('marketo_ma_tracking_method');
+function _marketo_rest_associate_lead($lead) {
+  $track = variable_get('marketo_rest_tracking_method');
   if (isset($lead['options']['tracking_method']) && $lead['options']['tracking_method'] != 'default') {
     $track = $lead['options']['tracking_method'];
   }
   switch ($track) {
     case 'munchkin':
-      _marketo_ma_associate_lead_munchkin($lead);
+      _marketo_rest_associate_lead_munchkin($lead);
       break;
 
     case 'forms2':
       if (isset($lead['options']['formid'])) {
-        _marketo_ma_associate_lead_forms2($lead, $lead['options']['formid']);
+        _marketo_rest_associate_lead_forms2($lead, $lead['options']['formid']);
       }
       break;
 
     case 'soap_async':
-      _marketo_ma_queue_lead($lead);
+      _marketo_rest_queue_lead($lead);
       break;
 
     case 'soap':
     default:
-      _marketo_ma_associate_lead_soap($lead);
+      _marketo_rest_associate_lead_soap($lead);
       break;
   }
 }
@@ -228,11 +228,11 @@ function _marketo_ma_associate_lead($lead) {
  * @param array $lead
  *   Lead data
  */
-function _marketo_ma_associate_lead_munchkin($lead) {
-  if (_marketo_ma_munchkin_is_configured()) {
-    $key = variable_get('marketo_ma_munchkin_api_private_key', NULL);
+function _marketo_rest_associate_lead_munchkin($lead) {
+  if (_marketo_rest_munchkin_is_configured()) {
+    $key = variable_get('marketo_rest_munchkin_api_private_key', NULL);
 
-    if (variable_get('marketo_ma_logging', FALSE)) {
+    if (variable_get('marketo_rest_logging', FALSE)) {
       watchdog('marketo', 'Associating lead !email [@method] <pre>@data</pre>', array(
         '!email' => $lead['email'],
         '@method' => 'munchkin',
@@ -248,7 +248,7 @@ function _marketo_ma_associate_lead_munchkin($lead) {
       'data' => $lead['data'],
       'hash' => $hash,
     );
-    drupal_add_js(array('marketo_ma' => array('actions' => array($action))), 'setting');
+    drupal_add_js(array('marketo_rest' => array('actions' => array($action))), 'setting');
   }
 }
 
@@ -260,14 +260,14 @@ function _marketo_ma_associate_lead_munchkin($lead) {
  * @param array $lead
  *   Lead data
  */
-function _marketo_ma_associate_lead_forms2($lead, $formid, $scheme = 'https', $path = '/index.php/leadCapture/save2') {
-  if (_marketo_ma_forms2_is_configured()) {
-    $url = $scheme . '://' . variable_get('marketo_ma_instance_host') . $path;
+function _marketo_rest_associate_lead_forms2($lead, $formid, $scheme = 'https', $path = '/index.php/leadCapture/save2') {
+  if (_marketo_rest_forms2_is_configured()) {
+    $url = $scheme . '://' . variable_get('marketo_rest_instance_host') . $path;
 
     $forms2 = array(
       'formid' => $formid,
       'formVid' => $formid,
-      'munchkinId' => variable_get('marketo_ma_munchkin_account_id'),
+      'munchkinId' => variable_get('marketo_rest_munchkin_account_id'),
     );
     $options = array(
       'method' => 'POST',
@@ -278,7 +278,7 @@ function _marketo_ma_associate_lead_forms2($lead, $formid, $scheme = 'https', $p
     $response = drupal_http_request($url, $options);
 
     if ($response->code == 200) {
-      if (variable_get('marketo_ma_logging', FALSE)) {
+      if (variable_get('marketo_rest_logging', FALSE)) {
         watchdog('marketo', 'Associating lead !email [forms2] <pre>@data</pre>', array(
           '!email' => $lead['email'],
           '@data' => print_r($lead['data'], TRUE)), WATCHDOG_INFO);
@@ -303,13 +303,13 @@ function _marketo_ma_associate_lead_forms2($lead, $formid, $scheme = 'https', $p
  * 
  * @throws Exception
  */
-function _marketo_ma_associate_lead_soap($lead) {
-  if (_marketo_ma_soap_is_configured()) {
-    module_load_include('inc', 'marketo_ma', 'includes/marketo_ma.soap');
+function _marketo_rest_associate_lead_soap($lead) {
+  if (_marketo_rest_soap_is_configured()) {
+    module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.soap');
 
-    $secret_key = variable_get('marketo_ma_soap_encryption_key');
-    $access_key = variable_get('marketo_ma_soap_user_id');
-    $soap_endpoint = variable_get('marketo_ma_soap_endpoint');
+    $secret_key = variable_get('marketo_rest_soap_encryption_key');
+    $access_key = variable_get('marketo_rest_soap_user_id');
+    $soap_endpoint = variable_get('marketo_rest_soap_endpoint');
 
     if (array_key_exists('marketoCookie', $lead)) {
       $mkto_trk = $lead['marketoCookie'];
@@ -319,12 +319,12 @@ function _marketo_ma_associate_lead_soap($lead) {
     }
 
     try {
-      $soap_settings = _marketo_ma_soap_proxy_settings();
-      $soap_settings['trace'] = variable_get('marketo_ma_logging', FALSE);
+      $soap_settings = _marketo_rest_soap_proxy_settings();
+      $soap_settings['trace'] = variable_get('marketo_rest_logging', FALSE);
       $client = new MarketoClient($access_key, $secret_key, $soap_endpoint, $soap_settings);
       $sync = $client->syncLead($lead['data'], $lead['email'], $mkto_trk, array('extendedResponse' => TRUE));
       if ($sync['success']) {
-        if (variable_get('marketo_ma_logging', FALSE)) {
+        if (variable_get('marketo_rest_logging', FALSE)) {
           watchdog('marketo', 'Associating lead !email [soap] <pre>@data @result</pre>', array(
             '!email' => $lead['email'],
             '@data' => print_r($lead['data'], TRUE),
@@ -356,14 +356,14 @@ function _marketo_ma_associate_lead_soap($lead) {
  * @return bool
  *   Returns TRUE if lead was successfully added to queue
  */
-function _marketo_ma_queue_lead($lead) {
-  if (variable_get('marketo_ma_logging', FALSE)) {
+function _marketo_rest_queue_lead($lead) {
+  if (variable_get('marketo_rest_logging', FALSE)) {
     watchdog('marketo', 'Queing lead !email [@method] <pre>@data</pre>', array(
       '!email' => $lead['email'],
       '@method' => 'queued',
       '@data' => print_r($lead['data'], TRUE)), WATCHDOG_INFO);
   }
-  $queue = DrupalQueue::get('marketo_ma_lead', TRUE);
+  $queue = DrupalQueue::get('marketo_rest_lead', TRUE);
   $success = $queue->createItem($lead);
   return $success;
 }
@@ -374,12 +374,12 @@ function _marketo_ma_queue_lead($lead) {
  * @return array
  *   Key/value pairs of defined Marketo fields
  */
-function _marketo_ma_get_field_options($labels = TRUE, $sort = TRUE) {
+function _marketo_rest_get_field_options($labels = TRUE, $sort = TRUE) {
   /*
-   * marketo_ma_webform_fields is multi-line, pipe "|" delimited data
+   * marketo_rest_webform_fields is multi-line, pipe "|" delimited data
    * which needs to be parsed. First split it into rows of data.
    */
-  $raw_options = preg_split('/(\r\n?|\n)/', trim(variable_get('marketo_ma_webform_fields', MARKETO_MA_WEBFORM_FIELD_DEFAULTS)));
+  $raw_options = preg_split('/(\r\n?|\n)/', trim(variable_get('marketo_rest_webform_fields', MARKETO_REST_WEBFORM_FIELD_DEFAULTS)));
   $options = array();
 
   // Loop over all the rows getting the keys and values for the fields.
@@ -405,17 +405,17 @@ function _marketo_ma_get_field_options($labels = TRUE, $sort = TRUE) {
  * @return array
  *   Marketo fields
  */
-function _marketo_ma_get_fields() {
+function _marketo_rest_get_fields() {
   $result = array();
-  if (_marketo_ma_soap_is_configured()) {
-    module_load_include('inc', 'marketo_ma', 'includes/marketo_ma.soap');
+  if (_marketo_rest_soap_is_configured()) {
+    module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.soap');
 
-    $secret_key = variable_get('marketo_ma_soap_encryption_key');
-    $access_key = variable_get('marketo_ma_soap_user_id');
-    $soap_endpoint = variable_get('marketo_ma_soap_endpoint');
+    $secret_key = variable_get('marketo_rest_soap_encryption_key');
+    $access_key = variable_get('marketo_rest_soap_user_id');
+    $soap_endpoint = variable_get('marketo_rest_soap_endpoint');
 
     try {
-      $client = new MarketoClient($access_key, $secret_key, $soap_endpoint, _marketo_ma_soap_proxy_settings());
+      $client = new MarketoClient($access_key, $secret_key, $soap_endpoint, _marketo_rest_soap_proxy_settings());
       $result = $client->getFields();
       if (!$result) {
         watchdog('marketo', 'Unable to retrieve field information. Please check SOAP API configuration', WATCHDOG_ERROR);
@@ -435,19 +435,19 @@ function _marketo_ma_get_fields() {
  * @return array
  *   Marketo lead
  */
-function marketo_ma_get_lead($key) {
+function marketo_rest_get_lead($key) {
   $result = array();
-  if (_marketo_ma_soap_is_configured()) {
-    module_load_include('inc', 'marketo_ma', 'includes/marketo_ma.soap');
+  if (_marketo_rest_soap_is_configured()) {
+    module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.soap');
 
-    $secret_key = variable_get('marketo_ma_soap_encryption_key');
-    $access_key = variable_get('marketo_ma_soap_user_id');
-    $soap_endpoint = variable_get('marketo_ma_soap_endpoint');
+    $secret_key = variable_get('marketo_rest_soap_encryption_key');
+    $access_key = variable_get('marketo_rest_soap_user_id');
+    $soap_endpoint = variable_get('marketo_rest_soap_endpoint');
 
     try {
-      $client = new MarketoClient($access_key, $secret_key, $soap_endpoint, _marketo_ma_soap_proxy_settings());
+      $client = new MarketoClient($access_key, $secret_key, $soap_endpoint, _marketo_rest_soap_proxy_settings());
       $result = $client->getLead($key);
-      if (!$result && variable_get('marketo_ma_logging', FALSE)) {
+      if (!$result && variable_get('marketo_rest_logging', FALSE)) {
         watchdog('marketo', 'Lead data not found for !key', array('!key' => $key), WATCHDOG_INFO);
       }
     }
@@ -465,19 +465,19 @@ function marketo_ma_get_lead($key) {
  * @return array
  *   Marketo lead
  */
-function marketo_ma_get_lead_activity($key) {
+function marketo_rest_get_lead_activity($key) {
   $result = array();
-  if (_marketo_ma_soap_is_configured()) {
-    module_load_include('inc', 'marketo_ma', 'includes/marketo_ma.soap');
+  if (_marketo_rest_soap_is_configured()) {
+    module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.soap');
 
-    $secret_key = variable_get('marketo_ma_soap_encryption_key');
-    $access_key = variable_get('marketo_ma_soap_user_id');
-    $soap_endpoint = variable_get('marketo_ma_soap_endpoint');
+    $secret_key = variable_get('marketo_rest_soap_encryption_key');
+    $access_key = variable_get('marketo_rest_soap_user_id');
+    $soap_endpoint = variable_get('marketo_rest_soap_endpoint');
 
     try {
-      $client = new MarketoClient($access_key, $secret_key, $soap_endpoint, _marketo_ma_soap_proxy_settings());
+      $client = new MarketoClient($access_key, $secret_key, $soap_endpoint, _marketo_rest_soap_proxy_settings());
       $result = $client->getLeadActivity($key);
-      if (!$result && variable_get('marketo_ma_logging', FALSE)) {
+      if (!$result && variable_get('marketo_rest_logging', FALSE)) {
         watchdog('marketo', 'Lead data not found for !key', array('!key' => $key), WATCHDOG_INFO);
       }
     }
@@ -490,21 +490,21 @@ function marketo_ma_get_lead_activity($key) {
 }
 
 /**
- * Tests to see if Marketo MA has a valid configuration.
+ * Tests to see if Marketo REST has a valid configuration.
  * 
  * @staticvar bool $configured
  * @return bool
  *   Returns TRUE if Munchkin settings are configured
  */
-function _marketo_ma_is_configured() {
+function _marketo_rest_is_configured() {
   static $configured;
 
   if (!isset($configured)) {
-    $track = variable_get('marketo_ma_tracking_method');
+    $track = variable_get('marketo_rest_tracking_method');
     if (
-      ($track == 'munchkin' & _marketo_ma_munchkin_is_configured()) ||
-      ($track == 'soap' & _marketo_ma_soap_is_configured()) ||
-      ($track == 'soap_async' & _marketo_ma_soap_is_configured())
+      ($track == 'munchkin' & _marketo_rest_munchkin_is_configured()) ||
+      ($track == 'soap' & _marketo_rest_soap_is_configured()) ||
+      ($track == 'soap_async' & _marketo_rest_soap_is_configured())
     ) {
       $configured = TRUE;
     }
@@ -523,14 +523,14 @@ function _marketo_ma_is_configured() {
  * @return bool
  *   Returns TRUE if Munchkin settings are configured
  */
-function _marketo_ma_munchkin_is_configured() {
+function _marketo_rest_munchkin_is_configured() {
   static $configured;
 
   if (!isset($configured)) {
     if (
-      variable_get('marketo_ma_munchkin_account_id', FALSE) &&
-      variable_get('marketo_ma_munchkin_api_private_key', FALSE) &&
-      variable_get('marketo_ma_munchkin_javascript_library', FALSE)
+      variable_get('marketo_rest_munchkin_account_id', FALSE) &&
+      variable_get('marketo_rest_munchkin_api_private_key', FALSE) &&
+      variable_get('marketo_rest_munchkin_javascript_library', FALSE)
     ) {
       $configured = TRUE;
     }
@@ -548,13 +548,13 @@ function _marketo_ma_munchkin_is_configured() {
  * @return bool
  *   Returns TRUE if forms2 settings are configured
  */
-function _marketo_ma_forms2_is_configured() {
+function _marketo_rest_forms2_is_configured() {
   static $configured;
 
   if (!isset($configured)) {
     if (
-      variable_get('marketo_ma_munchkin_account_id', FALSE) &&
-      variable_get('marketo_ma_instance_host', FALSE)
+      variable_get('marketo_rest_munchkin_account_id', FALSE) &&
+      variable_get('marketo_rest_instance_host', FALSE)
     ) {
       $configured = TRUE;
     }
@@ -572,14 +572,14 @@ function _marketo_ma_forms2_is_configured() {
  * @return bool
  *   Returns TRUE is SOAP API settings are configured
  */
-function _marketo_ma_soap_is_configured() {
+function _marketo_rest_soap_is_configured() {
   static $configured;
 
   if (!isset($configured)) {
     if (
-      variable_get('marketo_ma_soap_encryption_key', FALSE) &&
-      variable_get('marketo_ma_soap_endpoint', FALSE) &&
-      variable_get('marketo_ma_soap_user_id', FALSE)
+      variable_get('marketo_rest_soap_encryption_key', FALSE) &&
+      variable_get('marketo_rest_soap_endpoint', FALSE) &&
+      variable_get('marketo_rest_soap_user_id', FALSE)
     ) {
       $configured = TRUE;
     }
@@ -593,13 +593,13 @@ function _marketo_ma_soap_is_configured() {
 /**
  * Based on page visibility setting determines if marketo should be included.
  */
-function _marketo_ma_visibility_pages() {
+function _marketo_rest_visibility_pages() {
   static $page_match;
 
   // Cache visibility result if function is called more than once.
   if (!isset($page_match)) {
-    $visibility = variable_get('marketo_ma_visibility_pages', 0);
-    $setting_pages = variable_get('marketo_ma_pages', MARKETO_MA_PAGES);
+    $visibility = variable_get('marketo_rest_visibility_pages', 0);
+    $setting_pages = variable_get('marketo_rest_pages', MARKETO_REST_PAGES);
 
     // Match path if necessary.
     if (!empty($setting_pages)) {
@@ -636,14 +636,14 @@ function _marketo_ma_visibility_pages() {
 /**
  * Based on role visibility setting determines if marketo should be included.
  */
-function _marketo_ma_visibility_roles($account) {
+function _marketo_rest_visibility_roles($account) {
   static $role_match;
 
   // Cache visibility result if function is called more than once.
   if (!isset($role_match)) {
-    $visibility = variable_get('marketo_ma_visibility_roles', 0);
+    $visibility = variable_get('marketo_rest_visibility_roles', 0);
     $enabled = $visibility;
-    $roles = variable_get('marketo_ma_roles', array());
+    $roles = variable_get('marketo_rest_roles', array());
 
     if (array_sum($roles) > 0) {
       // One or more roles are selected.
@@ -673,15 +673,15 @@ function _marketo_ma_visibility_roles($account) {
  * @return array
  *   Proxy settings
  */
-function _marketo_ma_soap_proxy_settings() {
+function _marketo_rest_soap_proxy_settings() {
   static $proxy;
 
   if (!isset($proxy)) {
     $proxy = array();
-    $proxy['proxy_host'] = variable_get('marketo_ma_soap_proxy_host', '');
-    $proxy['proxy_port'] = variable_get('marketo_ma_soap_proxy_port', '');
-    $proxy['proxy_login'] = variable_get('marketo_ma_soap_proxy_login', '');
-    $proxy['proxy_password'] = variable_get('marketo_ma_soap_proxy_password', '');
+    $proxy['proxy_host'] = variable_get('marketo_rest_soap_proxy_host', '');
+    $proxy['proxy_port'] = variable_get('marketo_rest_soap_proxy_port', '');
+    $proxy['proxy_login'] = variable_get('marketo_rest_soap_proxy_login', '');
+    $proxy['proxy_password'] = variable_get('marketo_rest_soap_proxy_password', '');
 
     if (empty($proxy['proxy_host'])) {
       unset($proxy['proxy_host']);

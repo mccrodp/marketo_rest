@@ -2,13 +2,13 @@
 
 /**
  * @file
- * Drush integration for Marketo MA
+ * Drush integration for Marketo REST
  */
 
 /**
  * Implements hook_drush_command().
  */
-function marketo_ma_drush_command() {
+function marketo_rest_drush_command() {
   $items = array();
   $items['mma-get-lead'] = array(
     'description' => dt('Get Marketo lead and activity information for the given search criteria.'),
@@ -71,7 +71,7 @@ function marketo_ma_drush_command() {
  *
  * @param string $key
  */
-function drush_marketo_ma_mma_get_lead($key = NULL) {
+function drush_marketo_rest_mma_get_lead($key = NULL) {
   if (is_null($key)) {
     drush_log('No key provided', 'error');
     return;
@@ -101,15 +101,15 @@ function drush_marketo_ma_mma_get_lead($key = NULL) {
 
   switch ($scope) {
     case 'all':
-      $finds = _marketo_ma_search_drupal_lead($key, $activity) + _marketo_ma_search_marketo_lead($key, $activity);
+      $finds = _marketo_rest_search_drupal_lead($key, $activity) + _marketo_rest_search_marketo_lead($key, $activity);
       break;
 
     case 'drupal':
-      $finds = _marketo_ma_search_drupal_lead($key, $activity);
+      $finds = _marketo_rest_search_drupal_lead($key, $activity);
       break;
 
     case 'marketo':
-      $finds = _marketo_ma_search_marketo_lead($key, $activity);
+      $finds = _marketo_rest_search_marketo_lead($key, $activity);
       break;
 
     default:
@@ -153,7 +153,7 @@ function drush_marketo_ma_mma_get_lead($key = NULL) {
     if ($activity && array_key_exists('activity', $find)) {
       if (count($find['activity'])) {
         drush_print('Activity for lead ID ' . $find['marketo']->Id);
-        _marketo_ma_print_activity_($find['activity']);
+        _marketo_rest_print_activity_($find['activity']);
       }
       else {
         drush_print('No activity found for lead ID ' . $find['marketo']->Id);
@@ -167,8 +167,8 @@ function drush_marketo_ma_mma_get_lead($key = NULL) {
 /**
  * Callback function for mma-fields.
  */
-function drush_marketo_ma_mma_fields() {
-  $fields = _marketo_ma_get_fields();
+function drush_marketo_rest_mma_fields() {
+  $fields = _marketo_rest_get_fields();
   foreach ($fields as $key => $value) {
     $rows[$value['name']] = $value;
   }
@@ -178,8 +178,8 @@ function drush_marketo_ma_mma_fields() {
 /**
  * Callback function for mma-verify.
  */
-function drush_marketo_ma_mma_verify() {
-  $fields = _marketo_ma_get_fields();
+function drush_marketo_rest_mma_verify() {
+  $fields = _marketo_rest_get_fields();
   if (count($fields) > 0) {
     drush_log('Successfully connected to Marketo', 'success');
   }
@@ -197,7 +197,7 @@ function drush_marketo_ma_mma_verify() {
  * @return array
  *   Associative array or records found keyed on uid
  */
-function _marketo_ma_get_uid($search) {
+function _marketo_rest_get_uid($search) {
   // We use a DB query while looking for the uid to keep things speedy.
   $uids = array();
   if (is_numeric($search)) {
@@ -209,9 +209,9 @@ function _marketo_ma_get_uid($search) {
   return $query->fetchAllAssoc('uid');
 }
 
-function _marketo_ma_search_marketo_lead($key, $activity = FALSE) {
+function _marketo_rest_search_marketo_lead($key, $activity = FALSE) {
   $result = array();
-  $marketo = marketo_ma_get_lead($key); // Can return multiple.
+  $marketo = marketo_rest_get_lead($key); // Can return multiple.
   foreach ($marketo as $lead) {
     $account = user_load_by_mail($lead->Email); // Not sure about multiple.
     $result[$lead->Id] = array(
@@ -219,25 +219,25 @@ function _marketo_ma_search_marketo_lead($key, $activity = FALSE) {
       'drupal' => $account,
     );
     if ($activity) {
-      $result[$lead->Id]['activity'] = marketo_ma_get_lead_activity($lead->Id);
+      $result[$lead->Id]['activity'] = marketo_rest_get_lead_activity($lead->Id);
     }
   }
 
   return $result;
 }
 
-function _marketo_ma_search_drupal_lead($key, $activity = FALSE) {
+function _marketo_rest_search_drupal_lead($key, $activity = FALSE) {
   $result = array();
-  $uids = _marketo_ma_get_uid($key); // Can return multiple.
+  $uids = _marketo_rest_get_uid($key); // Can return multiple.
   foreach ($uids as $uid => $account) {
-    $marketo = marketo_ma_get_lead($account->mail);
+    $marketo = marketo_rest_get_lead($account->mail);
     foreach ($marketo as $lead) {
       $result[$lead->Id] = array(
         'marketo' => $lead,
         'drupal' => $account,
       );
       if ($account) {
-        $result[$lead->Id]['activity'] = marketo_ma_get_lead_activity($lead->Id);
+        $result[$lead->Id]['activity'] = marketo_rest_get_lead_activity($lead->Id);
       }
     }
   }
@@ -245,7 +245,7 @@ function _marketo_ma_search_drupal_lead($key, $activity = FALSE) {
   return $result;
 }
 
-function _marketo_ma_print_activity_($activity) {
+function _marketo_rest_print_activity_($activity) {
   $fields = array('id', 'activityDateTime', 'activityType', 'mktgAssetName');
   $rows = array();
   $rows[] = array(dt('ID'), dt('Date/Time'), dt('Activity Type'), dt('Asset Name'));

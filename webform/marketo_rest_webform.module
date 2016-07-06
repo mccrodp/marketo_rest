@@ -2,20 +2,20 @@
 
 /**
  * @file
- * Module functions for Marketo MA Webform.
+ * Module functions for Marketo REST Webform.
  */
 
 /**
  * Implements hook_menu().
  */
-function marketo_ma_webform_menu() {
+function marketo_rest_webform_menu() {
   $items['node/%webform_menu/webform/marketo'] = array(
     'title' => 'Marketo',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('marketo_ma_webform_settings_form', 1),
-    'access callback' => 'marketo_ma_webform_permission_callback',
+    'page arguments' => array('marketo_rest_webform_settings_form', 1),
+    'access callback' => 'marketo_rest_webform_permission_callback',
     'access arguments' => array(1),
-    'file' => 'includes/marketo_ma_webform.webform_settings.inc',
+    'file' => 'includes/marketo_rest_webform.webform_settings.inc',
     'type' => MENU_LOCAL_TASK,
   );
   return $items;
@@ -24,7 +24,7 @@ function marketo_ma_webform_menu() {
 /**
  * Implements hook_permission().
  */
-function marketo_ma_webform_permission() {
+function marketo_rest_webform_permission() {
   return array(
     'administer marketo webform settings' => array(
       'title' => t('Webform settings'),
@@ -42,7 +42,7 @@ function marketo_ma_webform_permission() {
  * @return bool
  *   TRUE if access is allowed otherwise FALSE.
  */
-function marketo_ma_webform_permission_callback($node) {
+function marketo_rest_webform_permission_callback($node) {
   global $user;
   return (user_access('administer marketo webform settings', $user) && node_access('update', $node));
 }
@@ -50,17 +50,17 @@ function marketo_ma_webform_permission_callback($node) {
 /**
  * Implements hook_theme().
  */
-function marketo_ma_webform_theme() {
+function marketo_rest_webform_theme() {
   $theme = array(
-    'marketo_ma_webform_fieldmap' => array(
+    'marketo_rest_webform_fieldmap' => array(
       'render element' => 'element',
-      'file' => 'includes/marketo_ma_webform.webform_settings.inc',
+      'file' => 'includes/marketo_rest_webform.webform_settings.inc',
     ),
-    'marketo_ma_webform_list' => array(
+    'marketo_rest_webform_list' => array(
       'variables' => array(
         'nodes' => array(),
       ),
-      'file' => 'includes/marketo_ma_webform.webform_settings.inc',
+      'file' => 'includes/marketo_rest_webform.webform_settings.inc',
     ),
   );
   return $theme;
@@ -69,24 +69,24 @@ function marketo_ma_webform_theme() {
 /**
  * Implements hook_form_FORM_ID_alter().
  */
-function marketo_ma_webform_form_marketo_ma_admin_settings_form_alter(&$form, &$form_state, $form_id) {
+function marketo_rest_webform_form_marketo_rest_admin_settings_form_alter(&$form, &$form_state, $form_id) {
   module_load_include('inc', 'webform', 'includes/webform.admin');
-  $form['marketo_ma_tabs']['marketo_ma_webform'] = array(
+  $form['marketo_rest_tabs']['marketo_rest_webform'] = array(
     '#title' => t('Webform Integration'),
     '#type' => 'fieldset',
     '#description' => t('Configuration is managed on each individual webform. This section lists all of the content on the site that may have a webform attached to it.'),
     '#weight' => 10,
   );
-  $form['marketo_ma_tabs']['marketo_ma_webform']['marketo_ma_webform_list'] = array(
-    '#markup' => marketo_ma_webform_list(),
+  $form['marketo_rest_tabs']['marketo_rest_webform']['marketo_rest_webform_list'] = array(
+    '#markup' => marketo_rest_webform_list(),
   );
 }
 
 /**
  * Implements hook_webform_component_delete().
  */
-function marketo_ma_webform_webform_component_delete($component) {
-  db_delete(MARKETO_MA_SCHEMA_WEBFORM_COMPONENT)
+function marketo_rest_webform_webform_component_delete($component) {
+  db_delete(MARKETO_REST_SCHEMA_WEBFORM_COMPONENT)
     ->condition('nid', $component['nid'])
     ->condition('cid', $component['cid'])
     ->execute();
@@ -97,14 +97,14 @@ function marketo_ma_webform_webform_component_delete($component) {
  *
  * TODO: refactor this growing function
  */
-function marketo_ma_webform_webform_submission_insert($node, $submission) {
-  $webform = _marketo_ma_webform_details($node->nid);
+function marketo_rest_webform_webform_submission_insert($node, $submission) {
+  $webform = _marketo_rest_webform_details($node->nid);
   if ($webform && $webform->is_active) {
 
     $data = array();
-    $fieldmap = _marketo_ma_webform_get_mapped_fields($node->nid);
+    $fieldmap = _marketo_rest_webform_get_mapped_fields($node->nid);
     foreach ($fieldmap as $cid => $key) {
-      if ($key != MARKETO_MA_WEBFORM_COMPONENT_NONE) {
+      if ($key != MARKETO_REST_WEBFORM_COMPONENT_NONE) {
         // https://drupal.org/node/1609324#submission-structure
         if (isset($submission->data[$cid]['value'][0])) {
           $data[$key] = $submission->data[$cid]['value'][0];
@@ -131,7 +131,7 @@ function marketo_ma_webform_webform_submission_insert($node, $submission) {
     }
 
     if (array_key_exists('Email', $data)) {
-      marketo_ma_add_lead($data['Email'], $data, FALSE, $webform->options);
+      marketo_rest_add_lead($data['Email'], $data, FALSE, $webform->options);
     }
   }
 }
@@ -145,15 +145,15 @@ function marketo_ma_webform_webform_submission_insert($node, $submission) {
  * @return array
  *   Array of webform component IDs and the Marketo field they are mapped to
  */
-function _marketo_ma_webform_get_mapped_fields($nid) {
+function _marketo_rest_webform_get_mapped_fields($nid) {
   $data = array();
-  $result = db_select(MARKETO_MA_SCHEMA_WEBFORM_COMPONENT)
-    ->fields(MARKETO_MA_SCHEMA_WEBFORM_COMPONENT)
+  $result = db_select(MARKETO_REST_SCHEMA_WEBFORM_COMPONENT)
+    ->fields(MARKETO_REST_SCHEMA_WEBFORM_COMPONENT)
     ->condition('nid', $nid)
     ->execute()
     ->fetchAll();
   foreach ($result as $field) {
-    $data[$field->cid] = $field->marketo_ma_key;
+    $data[$field->cid] = $field->marketo_rest_key;
   }
   return $data;
 }
@@ -167,9 +167,9 @@ function _marketo_ma_webform_get_mapped_fields($nid) {
  * @return bool
  *   TRUE if tracking is active on this webform otherwise FALSE
  */
-function _marketo_ma_webform_is_active($nid) {
-  $result = db_select(MARKETO_MA_SCHEMA_WEBFORM)
-    ->fields(MARKETO_MA_SCHEMA_WEBFORM)
+function _marketo_rest_webform_is_active($nid) {
+  $result = db_select(MARKETO_REST_SCHEMA_WEBFORM)
+    ->fields(MARKETO_REST_SCHEMA_WEBFORM)
     ->condition('nid', $nid)
     ->condition('is_active', 1)
     ->execute()
@@ -186,9 +186,9 @@ function _marketo_ma_webform_is_active($nid) {
  * @return array
  *   Array of details otherwise NULL if webform is not configured
  */
-function _marketo_ma_webform_details($nid) {
-  $result = db_select(MARKETO_MA_SCHEMA_WEBFORM)
-    ->fields(MARKETO_MA_SCHEMA_WEBFORM)
+function _marketo_rest_webform_details($nid) {
+  $result = db_select(MARKETO_REST_SCHEMA_WEBFORM)
+    ->fields(MARKETO_REST_SCHEMA_WEBFORM)
     ->condition('nid', $nid)
     ->execute()
     ->fetchObject();
@@ -207,27 +207,27 @@ function _marketo_ma_webform_details($nid) {
  * @return string
  *   A themed table of webforms defined on the site
  */
-function marketo_ma_webform_list() {
+function marketo_rest_webform_list() {
   $webform_types = webform_variable_get('webform_node_types');
 
   $nodes = array();
   if ($webform_types) {
-    $components = db_select(MARKETO_MA_SCHEMA_WEBFORM_COMPONENT, 'mmwc');
+    $components = db_select(MARKETO_REST_SCHEMA_WEBFORM_COMPONENT, 'mmwc');
     $components->addField('mmwc', 'nid');
-    $components->addExpression('count(' . MARKETO_MA_WEBFORM_COMPONENT_KEY . ')', 'components');
-    $components->condition('marketo_ma_key', 'none', '<>');
+    $components->addExpression('count(' . MARKETO_REST_WEBFORM_COMPONENT_KEY . ')', 'components');
+    $components->condition('marketo_rest_key', 'none', '<>');
     $components->groupBy('nid');
 
     $nodes = db_select('node', 'n');
-    $nodes->leftJoin(MARKETO_MA_SCHEMA_WEBFORM, 'mmw', 'n.nid = mmw.nid');
+    $nodes->leftJoin(MARKETO_REST_SCHEMA_WEBFORM, 'mmw', 'n.nid = mmw.nid');
     $nodes->leftJoin($components, 'mmwc', 'n.nid = mmwc.nid');
     $nodes->fields('n', array('nid', 'title'));
-    $nodes->addField('mmw', MARKETO_MA_WEBFORM_FIELD_ACTIVE);
+    $nodes->addField('mmw', MARKETO_REST_WEBFORM_FIELD_ACTIVE);
     $nodes->addField('mmwc', 'components');
     $result = $nodes->condition('n.type', $webform_types, 'IN')
       ->execute()
       ->fetchAllAssoc('nid');
   }
 
-  return theme('marketo_ma_webform_list', array('nodes' => $result));
+  return theme('marketo_rest_webform_list', array('nodes' => $result));
 }

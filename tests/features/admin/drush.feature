@@ -1,11 +1,11 @@
-@api @marketo_ma_drush
-Feature: Marketo MA Drush features
+@api @marketo_rest_drush
+Feature: Marketo REST Drush features
   In order to prove that drush funcitons are working properly
   As a developer
   I need all of these tests to run successfully
 
   Background: Fresh module install
-    Given all Marketo MA modules are clean and using "marketo_test_settings"
+    Given all Marketo REST modules are clean and using "marketo_test_settings"
     
   Scenario Outline: Ensure all expected drush commands are available and functioning
     When I run drush "help" "<command>"

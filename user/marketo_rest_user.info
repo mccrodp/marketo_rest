@@ -1,6 +1,6 @@
-name = Marketo MA User
+name = Marketo REST User
 description = Integrates Marketo with core User actions.
 core = 7.x
 package = Marketo
 
-dependencies[] = marketo_ma
+dependencies[] = marketo_rest

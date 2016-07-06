@@ -1,7 +1,7 @@
-name = Marketo MA Webform
+name = Marketo REST Webform
 description = Integrates Marketo with Webforms.
 core = 7.x
 package = Marketo
 
-dependencies[] = marketo_ma
+dependencies[] = marketo_rest
 dependencies[] = webform (>=3.x)

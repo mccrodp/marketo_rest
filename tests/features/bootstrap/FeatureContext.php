@@ -61,13 +61,13 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * Resets all Marketo MA modules to their default enabled state.
+   * Resets all Marketo REST modules to their default enabled state.
    *
-   * @Given all Marketo MA modules are clean
-   * @Given all Marketo MA modules are clean and using :config
+   * @Given all Marketo REST modules are clean
+   * @Given all Marketo REST modules are clean and using :config
    */
   public function allMarketoMaModulesClean($config = 'marketo_default_settings') {
-    $module_list = array('marketo_ma', 'marketo_ma_user', 'marketo_ma_webform');
+    $module_list = array('marketo_rest', 'marketo_rest_user', 'marketo_rest_webform');
 
     foreach ($module_list as $module) {
       if (!module_exists($module)) {
@@ -87,12 +87,12 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * Reinstalls Marketo MA modules.
+   * Reinstalls Marketo REST modules.
    *
-   * @Given I reinstall all Marketo MA modules
+   * @Given I reinstall all Marketo REST modules
    */
   public function reinstallMarketoMaModules() {
-    $module_list = array('marketo_ma', 'marketo_ma_user', 'marketo_ma_webform');
+    $module_list = array('marketo_rest', 'marketo_rest_user', 'marketo_rest_webform');
 
     $this->uninstallMarketoMaModules();
     module_enable($module_list);
@@ -107,12 +107,12 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * Uninstalls all Marketo MA modules.
+   * Uninstalls all Marketo REST modules.
    *
-   * @Given I uninstall all Marketo MA modules
+   * @Given I uninstall all Marketo REST modules
    */
   public function uninstallMarketoMaModules() {
-    $module_list = array('marketo_ma', 'marketo_ma_user', 'marketo_ma_webform');
+    $module_list = array('marketo_rest', 'marketo_rest_user', 'marketo_rest_webform');
 
     module_disable($module_list);
     drupal_uninstall_modules($module_list);
@@ -209,10 +209,10 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * @Given Marketo MA is configured using settings from :config
+   * @Given Marketo REST is configured using settings from :config
    */
   public function marketoMaIsConfiguredUsingSettingsFrom($config) {
-    $this->assertModulesClean("marketo_ma, marketo_ma_user, marketo_ma_webform");
+    $this->assertModulesClean("marketo_rest, marketo_rest_user, marketo_rest_webform");
 
     $settings = array_merge($this->params['marketo_default_settings'], $this->params[$config]);
     foreach ($settings as $key => $value) {
@@ -221,7 +221,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * @Given I populate the Marketo MA config using :config
+   * @Given I populate the Marketo REST config using :config
    */
   public function iPopulateConfigFromBehatYml($config) {
     $settings = array_merge($this->params['marketo_default_settings'], $this->params[$config]);
@@ -250,7 +250,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    * @Then Munchkin tracking should be enabled
    */
   public function assertMunchkinTrackingEnabled() {
-    $enabled = $this->getSession()->evaluateScript("return (Drupal.settings.marketo_ma === undefined) ? false : Drupal.settings.marketo_ma.track;");
+    $enabled = $this->getSession()->evaluateScript("return (Drupal.settings.marketo_rest === undefined) ? false : Drupal.settings.marketo_rest.track;");
     if ($enabled !== TRUE) {
       throw new Exception("Munchkin tracking is excpected to be ON but is currently OFF");
     }
@@ -261,7 +261,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    * @Then Munchkin tracking should be disabled
    */
   public function assertMunchkinTrackingNotEnabled() {
-    $enabled = $this->getSession()->evaluateScript("return (Drupal.settings.marketo_ma === undefined) ? false : Drupal.settings.marketo_ma.track;");
+    $enabled = $this->getSession()->evaluateScript("return (Drupal.settings.marketo_rest === undefined) ? false : Drupal.settings.marketo_rest.track;");
     if ($enabled !== FALSE) {
       throw new Exception("Munchkin tracking is expected to be OFF but is currently ON");
     }
@@ -271,7 +271,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    * @Then Munchkin associateLead action should send data
    */
   public function assertMunchkinAssociateLeadSendData(TableNode $fields) {
-    $actions = $this->getSession()->evaluateScript("return Drupal.settings.marketo_ma.actions");
+    $actions = $this->getSession()->evaluateScript("return Drupal.settings.marketo_rest.actions");
     if ((isset($actions[0]['action']) && $actions[0]['action'] == 'associateLead') == FALSE) {
       throw new \Exception("Munchkin associateLead did not fire as expected");
     }

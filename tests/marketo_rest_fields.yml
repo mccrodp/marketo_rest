@@ -1,0 +1,53 @@
+default:
+  context:
+    class: FeatureContext
+    parameters:
+      marketo_default_settings:
+        marketo_rest_instance_host: app-sjqe.marketo.com
+        marketo_rest_logging: 0
+        marketo_rest_munchkin_account_id: foo
+        marketo_rest_munchkin_api_private_key: bar
+        marketo_rest_munchkin_javascript_library: //munchkin.marketo.net/munchkin.js
+        marketo_rest_munchkin_lead_source: ''
+        marketo_rest_munchkin_partition: ''
+        marketo_rest_pages: "admin\r\nadmin/*\r\nbatch\r\nnode/add*\r\nnode/*/*\r\nuser/*/*"
+        marketo_rest_roles:
+          1: 0
+          2: 0
+          3: 0
+        marketo_rest_soap_encryption_key: ''
+        marketo_rest_soap_endpoint: ''
+        marketo_rest_soap_proxy_host: ''
+        marketo_rest_soap_proxy_login: ''
+        marketo_rest_soap_proxy_password: ''
+        marketo_rest_soap_proxy_port: ''
+        marketo_rest_soap_user_id: ''
+        marketo_rest_tracking_method: munchkin
+        marketo_rest_user_fieldmap:
+          field_first_name: none
+          field_last_name: none
+        marketo_rest_user_triggers:
+          login: login
+          insert: insert
+          update: update
+        marketo_rest_visibility_pages: '0'
+        marketo_rest_visibility_roles: '1'
+        marketo_rest_webform_fields: "FirstName|First Name\r\nLastName|Last Name\r\nEmail|Email Address"
+        marketo_rest_webform_fields_soap: 'Retrieve from Marketo'
+        
+      marketo_except_page_vis:
+        marketo_rest_visibility_pages: '1'
+        
+      marketo_role_vis_auth_exclude:
+        marketo_rest_visibility_roles: '1'
+        marketo_rest_roles:
+          1: 0
+          2: '2'
+          3: 0
+          
+      marketo_role_vis_auth_include:
+        marketo_rest_visibility_roles: '0'
+        marketo_rest_roles:
+          1: 0
+          2: '2'
+          3: 0

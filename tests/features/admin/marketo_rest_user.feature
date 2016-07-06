@@ -1,11 +1,11 @@
 @api
-Feature: Marketo MA User features
-  In order to prove that the marketo_ma_user module is working properly
+Feature: Marketo REST User features
+  In order to prove that the marketo_rest_user module is working properly
   As a developer
   I need all of these tests to run successfully
 
   Background: Modules are clean and users are ready to test
-    Given all Marketo MA modules are clean and using "marketo_test_settings"
+    Given all Marketo REST modules are clean and using "marketo_test_settings"
     And fields:
       | bundle | entity | field_name         | field_type | widget_type |
       | user   | user   | field_firstname123 | text       | text_field  |
@@ -13,14 +13,14 @@ Feature: Marketo MA User features
       | user   | user   | field_company123   | text       | text_field  |
     And users:
       | name     | mail                     | field_firstname123 | field_lastname123 | field_company123 | pass     |
-      | mmatest1 | mmatest1@mma.example.com | Mma1               | Test1             | MMA Test Co.     | password |
-      | mmatest2 | mmatest2@mma.example.com | Mma2               | Test2             | MMA Test Co.     | password |
+      | mmatest1 | mmatest1@mma.example.com | Mma1               | Test1             | MREST Test Co.     | password |
+      | mmatest2 | mmatest2@mma.example.com | Mma2               | Test2             | MREST Test Co.     | password |
 
   @user_field_mapping
   Scenario: Ensure core and custom user fields can be mapped
     Given I am logged in as a user with the "administer marketo" permission
 
-    When I go to "/admin/config/search/marketo_ma"
+    When I go to "/admin/config/search/marketo_rest"
     Then I should see "[account:uid] (uid)"
     And I should see "[account:name] (name)"
     And I should see "field_firstname123 (field_firstname123)"
@@ -44,7 +44,7 @@ Feature: Marketo MA User features
   @javascript
   Scenario: Mapped user fields are sent to Marketo
     Given I am logged in as a user with the "administer marketo" permission
-    When I go to "/admin/config/search/marketo_ma"
+    When I go to "/admin/config/search/marketo_rest"
     And I click "User Integration"
     And I select "FirstName" from "field_firstname123 (field_firstname123)"
     And I select "LastName" from "field_lastname123 (field_lastname123)"

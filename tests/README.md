@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/MarketoMA/marketo_ma.svg?branch=7.x-1.x)](https://travis-ci.org/MarketoMA/marketo_ma)
+[![Build Status](https://travis-ci.org/MarketoREST/marketo_rest.svg?branch=7.x-1.x)](https://travis-ci.org/MarketoREST/marketo_rest)
 
 ## Install required components
 The Marketo MA test suite uses Behat. Set it up in the regular way.
@@ -12,7 +12,7 @@ $ php composer.phar install
 The Marketo MA module comes with a behat.yml.dist file which must be copied and configured for your specific environment.
 
 ```
-$ cd path/to/marketo_ma/tests
+$ cd path/to/marketo_rest/tests
 $ cp behat.yml.dist behat.yml
 ```
 
@@ -26,13 +26,13 @@ Modify behat.yml populating valid information for:
 To execute all tests
 
 ```
-$ cd path/to/marketo_ma/tests
+$ cd path/to/marketo_rest/tests
 $ bin/behat
 ```
 
 Tags have been placed on most scenarios so the scope testing can be controlled
 
 ```
-$ cd path/to/marketo_ma/tests
+$ cd path/to/marketo_rest/tests
 $ bin/behat --tags='config&&live'
 ```

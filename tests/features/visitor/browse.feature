@@ -2,7 +2,7 @@
 Feature: Browser tests
 
   Background: Fresh module install
-    Given all Marketo MA modules are clean and using "marketo_test_settings"
+    Given all Marketo REST modules are clean and using "marketo_test_settings"
 
   @page_visibility
   Scenario: Page visibilty when using default "All pages except those listed"
@@ -17,7 +17,7 @@ Feature: Browser tests
     When I visit "/admin"
     Then Munchkin tracking should be disabled
     
-    When I visit "/admin/config/search/marketo_ma"
+    When I visit "/admin/config/search/marketo_rest"
     Then Munchkin tracking should be disabled
     
     When I visit "/node/add"
@@ -28,7 +28,7 @@ Feature: Browser tests
     
   @page_visibility
   Scenario: Page visibilty when using "Only the pages listed"
-    Given I populate the Marketo MA config using "marketo_page_vis_only"
+    Given I populate the Marketo REST config using "marketo_page_vis_only"
     And I am logged in as a user with the "administrator" role
     
     When I am on the homepage
@@ -40,7 +40,7 @@ Feature: Browser tests
     When I visit "/admin"
     Then Munchkin tracking should be enabled
     
-    When I visit "/admin/config/search/marketo_ma"
+    When I visit "/admin/config/search/marketo_rest"
     Then Munchkin tracking should be enabled
     
     When I visit "/node/add"
@@ -60,7 +60,7 @@ Feature: Browser tests
     And I am on the homepage
     Then Munchkin tracking should be enabled
     
-    Given I populate the Marketo MA config using "marketo_role_vis_auth_exclude"
+    Given I populate the Marketo REST config using "marketo_role_vis_auth_exclude"
     
     When I am an anonymous user
     And I am on the homepage
@@ -70,7 +70,7 @@ Feature: Browser tests
     And I am on the homepage
     Then Munchkin tracking should be disabled
 
-    Given I populate the Marketo MA config using "marketo_role_vis_auth_include"
+    Given I populate the Marketo REST config using "marketo_role_vis_auth_include"
     
     When I am an anonymous user
     And I am on the homepage

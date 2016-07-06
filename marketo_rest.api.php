@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Hooks provided by Marketo MA.
+ * Hooks provided by Marketo REST .
  */
 
 /**
@@ -20,9 +20,9 @@
  *     - LastName
  *   - marketoCookie: NULL or the value of $_COOKIE['_mkto_trk']
  *
- * @see marketo_ma_add_lead()
+ * @see marketo_rest_add_lead()
  */
-function hook_marketo_ma_lead_alter(&$data) {
+function hook_marketo_rest_lead_alter(&$data) {
   // Set or update the lead source for this lead.
   $data['data']['LeadSource'] = 'Foo';
 }
@@ -38,9 +38,9 @@ function hook_marketo_ma_lead_alter(&$data) {
  * @param mixed $data
  *   The value of FIELDNAME
  *
- * @see marketo_ma_add_lead()
+ * @see marketo_rest_add_lead()
  */
-function hook_marketo_ma_lead_FIELDNAME_alter(&$data) {
+function hook_marketo_rest_lead_FIELDNAME_alter(&$data) {
   // convert this specific field value to lowercase.
   $data = strtolower($data);
 }

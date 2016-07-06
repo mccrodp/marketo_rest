@@ -2,15 +2,15 @@
 
 /**
  * @file
- * Rules integration for Marketo MA
+ * Rules integration for Marketo REST
  */
 
 /**
  * Implements hook_rules_action_info().
  */
-function marketo_ma_rules_action_info() {
+function marketo_rest_rules_action_info() {
   $actions = array(
-    'marketo_ma_rules_action_add_lead' => array(
+    'marketo_rest_rules_action_add_lead' => array(
       'label' => t('Send lead data to Marketo'),
       'group' => t('User'),
       'parameter' => array(
@@ -25,7 +25,7 @@ function marketo_ma_rules_action_info() {
         ),
       ),
     ),
-    'marketo_ma_rules_action_get_lead' => array(
+    'marketo_rest_rules_action_get_lead' => array(
       'label' => t('Get lead data from Marketo'),
       'group' => t('User'),
       'parameter' => array(
@@ -36,7 +36,7 @@ function marketo_ma_rules_action_info() {
         ),
       ),
       'provides' => array(
-        'marketo_ma_lead' => array(
+        'marketo_rest_lead' => array(
           'type' => 'text',
           'label' => t('Marketo lead data'),
         ),
@@ -52,14 +52,14 @@ function marketo_ma_rules_action_info() {
  * @param $account
  * @param $data
  */
-function marketo_ma_rules_action_add_lead($account, $data) {
+function marketo_rest_rules_action_add_lead($account, $data) {
   if (!empty($account->mail)) {
     $output = array();
     foreach ($data as $row) {
       $r = explode("|", $row);
       $output[$r[0]] = $r[1];
     }
-    marketo_ma_add_lead($account->mail, $output);
+    marketo_rest_add_lead($account->mail, $output);
   }
 }
 
@@ -69,12 +69,12 @@ function marketo_ma_rules_action_add_lead($account, $data) {
  * @param $account
  * @return array
  */
-function marketo_ma_rules_action_get_lead($account) {
+function marketo_rest_rules_action_get_lead($account) {
   $lead = NULL;
   if (!empty($account->mail)) {
-    $lead = marketo_ma_get_lead($account->mail);
+    $lead = marketo_rest_get_lead($account->mail);
   }
   return array(
-    'marketo_ma_lead' => json_encode($lead),
+    'marketo_rest_lead' => json_encode($lead),
   );
 }

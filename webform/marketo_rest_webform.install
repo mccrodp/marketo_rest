@@ -8,9 +8,9 @@
 /**
  * Implements hook_schema().
  */
-function marketo_ma_webform_schema() {
+function marketo_rest_webform_schema() {
   $schema = array();
-  $schema[MARKETO_MA_SCHEMA_WEBFORM] = array(
+  $schema[MARKETO_REST_SCHEMA_WEBFORM] = array(
     'description' => 'Webform Settings',
     'primary key' => array('nid'),
     'unique keys' => array(),
@@ -21,7 +21,7 @@ function marketo_ma_webform_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
-      MARKETO_MA_WEBFORM_FIELD_ACTIVE => array(
+      MARKETO_REST_WEBFORM_FIELD_ACTIVE => array(
         // Is this webform marketo enabled.
         'description' => 'Should this form send data to Marketo',
         'type' => 'int',
@@ -29,13 +29,13 @@ function marketo_ma_webform_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      MARKETO_MA_WEBFORM_OPTIONS => array(
+      MARKETO_REST_WEBFORM_OPTIONS => array(
         'description' => 'Additional options for controlling tracking behavior',
         'type' => 'blob',
       ),
     ),
   );
-  $schema[MARKETO_MA_SCHEMA_WEBFORM_COMPONENT] = array(
+  $schema[MARKETO_REST_SCHEMA_WEBFORM_COMPONENT] = array(
     'description' => 'Webform Component Settings',
     'primary key' => array('nid', 'cid'),
     'unique keys' => array(),
@@ -55,7 +55,7 @@ function marketo_ma_webform_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      MARKETO_MA_WEBFORM_COMPONENT_KEY => array(
+      MARKETO_REST_WEBFORM_COMPONENT_KEY => array(
         'description' => 'The Marketo form field.',
         'type' => 'varchar',
         'length' => 128,
@@ -68,25 +68,12 @@ function marketo_ma_webform_schema() {
 /**
  * Implements hook_uninstall().
  */
-function marketo_ma_webform_uninstall() {
+function marketo_rest_webform_uninstall() {
   /*
    * This is required in order to pick up the constants defined in
-   * marketo_ma.module. This hook will execute before the attempt to remove
+   * marketo_rest.module. This hook will execute before the attempt to remove
    * the schema occurs and ensure that uninstall does not leave any orphaned
    * tables. See https://api.drupal.org/comment/15344#comment-15344
    */
-  drupal_load('module', 'marketo_ma');
-}
-
-/**
- * Add field for webform specific tracking options.
- */
-function marketo_ma_webform_update_7100(&$sandbox) {
-  db_add_field(
-    MARKETO_MA_SCHEMA_WEBFORM, MARKETO_MA_WEBFORM_OPTIONS, array(
-      'description' => 'Additional options for controlling tracking behavior',
-      'type' => 'blob',
-    )
-  );
-  return t('Option field created.');
+  drupal_load('module', 'marketo_rest');
 }

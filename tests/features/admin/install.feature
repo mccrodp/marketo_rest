@@ -5,26 +5,26 @@ Feature: Module setup
   I need to do the following
 
   Background: Reset to a clean state
-    Given I reinstall all Marketo MA modules
+    Given I reinstall all Marketo REST modules
 
   @install
-  Scenario: Install all Marketo MA modules
+  Scenario: Install all Marketo REST modules
     Given I am logged in as an administrator
-    When I go to "/admin/config/search/marketo_ma"
-    Then I should see the heading "Marketo MA"
+    When I go to "/admin/config/search/marketo_rest"
+    Then I should see the heading "Marketo REST"
     And I should see a "#marketo-ma-admin-settings-form" element
 
   @uninstall
-  Scenario: Disable and uninstall all Marketo MA modules
-    Given I run drush "vset" "marketo_ma_bogus 'bogus'"
+  Scenario: Disable and uninstall all Marketo REST modules
+    Given I run drush "vset" "marketo_rest_bogus 'bogus'"
 
     Given I am logged in as an administrator
-    And I go to "/admin/config/search/marketo_ma"
-    And I fill in "marketo_ma_munchkin_account_id" with "bogus"
-    And I fill in "marketo_ma_munchkin_api_private_key" with "bogus"
+    And I go to "/admin/config/search/marketo_rest"
+    And I fill in "marketo_rest_munchkin_account_id" with "bogus"
+    And I fill in "marketo_rest_munchkin_api_private_key" with "bogus"
     When I press "Save configuration"
     Then I should see "The configuration options have been saved."
 
-    Given I uninstall all Marketo MA modules
-    And I run drush "vget" "marketo_ma --format=json"
-    Then drush output should contain '{"marketo_ma_bogus":"bogus"}'
+    Given I uninstall all Marketo REST modules
+    And I run drush "vget" "marketo_rest --format=json"
+    Then drush output should contain '{"marketo_rest_bogus":"bogus"}'
