@@ -56,25 +56,25 @@ interface MarketoInterface {
 class MarketoClient implements MarketoInterface {
 
   // http://app.marketo.com/soap/mktows/2_0?WSDL
-  protected $userId;
-  protected $encryptionKey;
+  protected $clientId;
+  protected $clientSecret;
   protected $endpoint;
 
   /**
    * Constructor for MarketoClient class.
    * 
-   * @param string $user_id
-   *   A User ID (aka Access Key) defined in Marketo admin
-   * @param string $encryption_key
-   *   A shared secret-key (aka Encryption Key) defined in Marketo admin
+   * @param string $client_id
+   *   A Client ID defined in Marketo admin
+   * @param string $client_secret
+   *   A secret-key defined in Marketo admin
    * @param string $endpoint
-   *   SOAP endpoint URL
+   *   REST endpoint URL
    * @param array $options
    *   Optional array of SoapClient options 
    */
-  public function __construct($user_id, $encryption_key, $endpoint, $options = array()) {
-    $this->userId = $user_id;
-    $this->encryptionKey = $encryption_key;
+  public function __construct($client_id, $client_secret, $endpoint, $options = array()) {
+    $this->clientId = $client_id;
+    $this->clientSecret = $client_secret;
     $this->endpoint = $endpoint;
 
     $wsdl = $this->endpoint . '?WSDL';
@@ -83,9 +83,9 @@ class MarketoClient implements MarketoInterface {
       "connection_timeout" => 20,
       "location" => $this->endpoint,
     );
-    $soap_options = array_merge($default_options, $options);
+    $rest_options = array_merge($default_options, $options);
 
-    $this->client = new SoapClient($wsdl, $soap_options);
+    $this->client = new SoapClient($wsdl, $rest_options);
   }
 
   /**
@@ -96,11 +96,11 @@ class MarketoClient implements MarketoInterface {
    */
   protected function authenticationHeader() {
     $timestamp = date("c");
-    $encrypt_string = $timestamp . $this->userId;
-    $signature = hash_hmac('sha1', $encrypt_string, $this->encryptionKey);
+    $encrypt_string = $timestamp . $this->clientId;
+    $signature = hash_hmac('sha1', $encrypt_string, $this->clientSecret);
 
     $data = new stdClass();
-    $data->mktowsUserId = $this->userId;
+    $data->mktowsUserId = $this->clientId;
     $data->requestSignature = $signature;
     $data->requestTimestamp = $timestamp;
 

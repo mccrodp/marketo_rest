@@ -303,8 +303,8 @@ function _marketo_rest_associate_lead_rest($lead) {
   if (_marketo_rest_rest_is_configured()) {
     module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.rest');
 
-    $secret_key = variable_get('marketo_rest_rest_encryption_key');
-    $access_key = variable_get('marketo_rest_rest_user_id');
+    $secret_key = variable_get('marketo_rest_rest_client_secret');
+    $access_key = variable_get('marketo_rest_rest_client_id');
     $rest_endpoint = variable_get('marketo_rest_rest_endpoint');
 
     if (array_key_exists('marketoCookie', $lead)) {
@@ -406,8 +406,8 @@ function _marketo_rest_get_fields() {
   if (_marketo_rest_rest_is_configured()) {
     module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.rest');
 
-    $secret_key = variable_get('marketo_rest_rest_encryption_key');
-    $access_key = variable_get('marketo_rest_rest_user_id');
+    $secret_key = variable_get('marketo_rest_rest_client_secret');
+    $access_key = variable_get('marketo_rest_rest_client_id');
     $rest_endpoint = variable_get('marketo_rest_rest_endpoint');
 
     try {
@@ -436,8 +436,8 @@ function marketo_rest_get_lead($key) {
   if (_marketo_rest_rest_is_configured()) {
     module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.rest');
 
-    $secret_key = variable_get('marketo_rest_rest_encryption_key');
-    $access_key = variable_get('marketo_rest_rest_user_id');
+    $secret_key = variable_get('marketo_rest_rest_client_secret');
+    $access_key = variable_get('marketo_rest_rest_client_id');
     $rest_endpoint = variable_get('marketo_rest_rest_endpoint');
 
     try {
@@ -466,8 +466,8 @@ function marketo_rest_get_lead_activity($key) {
   if (_marketo_rest_rest_is_configured()) {
     module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.rest');
 
-    $secret_key = variable_get('marketo_rest_rest_encryption_key');
-    $access_key = variable_get('marketo_rest_rest_user_id');
+    $secret_key = variable_get('marketo_rest_rest_client_secret');
+    $access_key = variable_get('marketo_rest_rest_client_id');
     $rest_endpoint = variable_get('marketo_rest_rest_endpoint');
 
     try {
@@ -573,9 +573,9 @@ function _marketo_rest_rest_is_configured() {
 
   if (!isset($configured)) {
     if (
-      variable_get('marketo_rest_rest_encryption_key', FALSE) &&
+      variable_get('marketo_rest_rest_client_secret', FALSE) &&
       variable_get('marketo_rest_rest_endpoint', FALSE) &&
-      variable_get('marketo_rest_rest_user_id', FALSE)
+      variable_get('marketo_rest_rest_client_id', FALSE)
     ) {
       $configured = TRUE;
     }

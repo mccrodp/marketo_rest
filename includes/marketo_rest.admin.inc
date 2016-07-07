@@ -96,16 +96,16 @@ function marketo_rest_admin_settings_form($form, &$form_state) {
     '#default_value' => variable_get('marketo_rest_rest_endpoint', ''),
     '#required' => FALSE,
   );
-  $form['marketo_rest_tabs']['marketo_rest_api']['marketo_rest_rest']['marketo_rest_rest_user_id'] = array(
+  $form['marketo_rest_tabs']['marketo_rest_api']['marketo_rest_rest']['marketo_rest_rest_client_id'] = array(
     '#type' => 'textfield',
-    '#title' => t('User ID'),
-    '#default_value' => variable_get('marketo_rest_rest_user_id', ''),
+    '#title' => t('Client ID'),
+    '#default_value' => variable_get('marketo_rest_rest_client_id', ''),
     '#required' => FALSE,
   );
-  $form['marketo_rest_tabs']['marketo_rest_api']['marketo_rest_rest']['marketo_rest_rest_encryption_key'] = array(
+  $form['marketo_rest_tabs']['marketo_rest_api']['marketo_rest_rest']['marketo_rest_rest_client_secret'] = array(
     '#type' => 'textfield',
-    '#title' => t('Encryption Key'),
-    '#default_value' => variable_get('marketo_rest_rest_encryption_key', ''),
+    '#title' => t('Client Secret'),
+    '#default_value' => variable_get('marketo_rest_rest_client_secret', ''),
     '#required' => FALSE,
   );
   $form['marketo_rest_tabs']['marketo_rest_api']['marketo_rest_rest']['marketo_rest_rest_proxy'] = array(
@@ -238,8 +238,8 @@ function marketo_rest_admin_settings_form_validate($form, &$form_state) {
   // If using rest, attempt validation.
   if ($form_state['values']['marketo_rest_tracking_method'] == 'rest') {
     $form_state['values']['marketo_rest_rest_endpoint'] = trim($form_state['values']['marketo_rest_rest_endpoint']);
-    $form_state['values']['marketo_rest_rest_user_id'] = trim($form_state['values']['marketo_rest_rest_user_id']);
-    $form_state['values']['marketo_rest_rest_encryption_key'] = trim($form_state['values']['marketo_rest_rest_encryption_key']);
+    $form_state['values']['marketo_rest_rest_client_id'] = trim($form_state['values']['marketo_rest_rest_client_id']);
+    $form_state['values']['marketo_rest_rest_client_secret'] = trim($form_state['values']['marketo_rest_rest_client_secret']);
 
     $proxy = array();
     $proxy['proxy_host'] = trim($form_state['values']['marketo_rest_rest_proxy_host']);
@@ -261,12 +261,12 @@ function marketo_rest_admin_settings_form_validate($form, &$form_state) {
     }
 
     $rest_is_valid = _marketo_rest_validate_rest_configuration(
-      $form_state['values']['marketo_rest_rest_user_id'], $form_state['values']['marketo_rest_rest_encryption_key'], $form_state['values']['marketo_rest_rest_endpoint'], $proxy
+      $form_state['values']['marketo_rest_rest_client_id'], $form_state['values']['marketo_rest_rest_client_secret'], $form_state['values']['marketo_rest_rest_endpoint'], $proxy
     );
     if (!$rest_is_valid) {
       form_set_error('marketo_rest_rest_endpoint', 'Unable to validate REST API settings.');
-      form_set_error('marketo_rest_rest_user_id');
-      form_set_error('marketo_rest_rest_encryption_key');
+      form_set_error('marketo_rest_rest_client_id');
+      form_set_error('marketo_rest_rest_client_secret');
     }
   }
 }

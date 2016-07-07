@@ -1,6 +1,6 @@
 **Non functional development sandbox for new marketo_rest module**
 
-# Marketo MA
+# Marketo REST
 
 This module adds Marketo tracking capability to your Drupal site.
 
@@ -26,7 +26,7 @@ This module adds Marketo tracking capability to your Drupal site.
 ## Module Configuration
 
 The Marketo REST configuration page can be found under Configuration > Search and
-metadata > Marketo MA. The direct path is admin/config/search/marketo_rest.
+metadata > Marketo REST. The direct path is admin/config/search/marketo_rest.
 
 - [API Configuration](#api-configuration)
 - [Field Definition](#field-definition)
@@ -85,9 +85,9 @@ Values for these fields can be set/retrieved on your Marketo admin site under
 Admin > Integration > SOAP API. Additional information can be found in the
 Marketo article [Configuring Your SOAP API Settings](http://community.marketo.com/MarketoArticle?id=kA050000000KyoyCAC).
 
-- SOAP endpoint
-- User ID
-- Encryption Key
+- REST endpoint
+- Client ID
+- Client Secret
 
 SOAP configuration will be validated upon save.
 
@@ -148,7 +148,7 @@ The Marketo REST User module allows you to capture and update lead data as users
 login and change their profiles. These steps assume you have already configured
 additional account fields admin/config/people/accounts/fields.
 
-Management of all integration options are handled on the main Marketo MA
+Management of all integration options are handled on the main Marketo REST
 configuration page found at admin/config/search/marketo_rest.
 
 1. Enable the Marketo REST User module.
