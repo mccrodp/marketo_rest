@@ -63,7 +63,7 @@ function marketo_rest_admin_settings_form($form, &$form_state) {
       'soap' => t('SOAP API (Synchronous)'),
       'soap_async' => t('SOAP API (Asynchronous)'),
     ),
-    '#default_value' => variable_get('marketo_rest_tracking_method', marketo_rest_TRACKING_METHOD_DEFAULT),
+    '#default_value' => variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT),
     '#required' => TRUE,
     '#descritpion' => t('Asynchronous will queue requests and send data when cron runs.'),
   );
@@ -198,7 +198,7 @@ function marketo_rest_admin_settings_form($form, &$form_state) {
     '#type' => 'textarea',
     '#title' => t('Pages'),
     '#title_display' => 'invisible',
-    '#default_value' => variable_get('marketo_rest_pages', marketo_rest_PAGES),
+    '#default_value' => variable_get('marketo_rest_pages', MARKETO_REST_PAGES),
     '#description' => t("Specify pages by using their paths. Enter one path per line. The '*' character is a wildcard. Example paths are %blog for the blog page and %blog-wildcard for every personal blog. %front is the front page.", array(
       '%blog' => 'blog',
       '%blog-wildcard' => 'blog/*',

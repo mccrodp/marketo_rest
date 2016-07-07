@@ -11,22 +11,22 @@ This module adds Marketo tracking capability to your Drupal site.
 
 ## Installation
 
-1. Copy the entire marketo_ma directory the Drupal sites/all/modules directory.
+1. Copy the entire marketo_rest directory the Drupal sites/all/modules directory.
 
-2. Login as an administrator. Enable the Marketo MA module in
+2. Login as an administrator. Enable the Marketo REST module in
    "Administer" -> "Modules"
 
-3. (Optional) Enable the Marketo MA User module in
+3. (Optional) Enable the Marketo REST User module in
    "Administer" -> "Modules"
 
-4. (Optional) Enable the Marketo MA Webform module in
+4. (Optional) Enable the Marketo REST Webform module in
    "Administer" -> "Modules"
 
 
 ## Module Configuration
 
-The Marketo MA configuration page can be found under Configuration > Search and
-metadata > Marketo MA. The direct path is admin/config/search/marketo_ma.
+The Marketo REST configuration page can be found under Configuration > Search and
+metadata > Marketo MA. The direct path is admin/config/search/marketo_rest.
 
 - [API Configuration](#api-configuration)
 - [Field Definition](#field-definition)
@@ -142,16 +142,16 @@ This option defines the default rule for tracking user roles
 
 Roles defined on the site will be available for selection.
 
-### <a id="user-integration"></a> User Integration (Requires Marketo MA User)
+### <a id="user-integration"></a> User Integration (Requires Marketo REST User)
 
-The Marketo MA User module allows you to capture and update lead data as users
+The Marketo REST User module allows you to capture and update lead data as users
 login and change their profiles. These steps assume you have already configured
 additional account fields admin/config/people/accounts/fields.
 
 Management of all integration options are handled on the main Marketo MA
-configuration page found at admin/config/search/marketo_ma.
+configuration page found at admin/config/search/marketo_rest.
 
-1. Enable the Marketo MA User module.
+1. Enable the Marketo REST User module.
 
 2. Ensure that SOAP API settings are configured in the API Configuration section.
    User integration is dependant on the SOAP API and will leverage it regardless
@@ -164,13 +164,13 @@ configuration page found at admin/config/search/marketo_ma.
 4. In the User Field Mapping section you will see a table of all custom fields
    which have been added for accounts. Use the select boxes in the Marketo
    column to map each field. The options available to you are defined in the
-   "Field Definition" section of the the Marketo MA config screen.
+   "Field Definition" section of the the Marketo REST config screen.
 
 5. Save configuration
 
 **It is not necessary to define a mapping for email address as this field is automatically mapped to the Marketo "Email" field.**
 
-### <a id="webform-integration"></a> Webform Integration (Requires Marketo MA Webform)
+### <a id="webform-integration"></a> Webform Integration (Requires Marketo REST Webform)
 
 Marketo settings for a given webform are managed on each individual node. This
 section displays a table of all content on the site that may have a webform
@@ -193,9 +193,9 @@ attached to it and provides an overview of each item's current state.
 These steps assume you already have a webform and components defined. Instructions for
 creating a webform can be found here http://drupal.org/documentation/modules/webform.
 
-1. Ensure the Marketo MA Webform module is enabled.
+1. Ensure the Marketo REST Webform module is enabled.
 
-2. From the Webform Integration section of the Marketo MA module configuration page,
+2. From the Webform Integration section of the Marketo REST module configuration page,
    click the Edit link for the webform you would like to configure. Alternatively you
    can view the webform node directly and click the Marketo link found on the Webform
    tab. The direct path to the setup page will be node/%nodeid/webform/marketo.
@@ -206,7 +206,7 @@ creating a webform can be found here http://drupal.org/documentation/modules/web
 4. Assuming you have defined components for this webform you will see a table of
    all components and their associated Marketo mappings. Use the select boxes in
    the Marketo column to map each field. The options available to you are defined
-   in the "Field Definition" section of the the Marketo MA config screen.
+   in the "Field Definition" section of the the Marketo REST config screen.
    **At a minimum must have a field mapped to the Marketo Email if you want data to be captured.**
 
 5. Save the form
