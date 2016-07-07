@@ -41,9 +41,8 @@ function marketo_rest_webform_settings_form($form, &$form_state, $node) {
   if (_marketo_rest_forms2_is_configured()) {
     $methods['forms2'] = t('Forms 2.0');
   }
-  if (_marketo_rest_soap_is_configured()) {
-    $methods['soap'] = t('SOAP API (Synchronous)');
-    $methods['soap_async'] = t('SOAP API (Asynchronous)');
+  if (_marketo_rest_rest_is_configured()) {
+    $methods['rest'] = t('REST API');
   }
   $form['marketo_rest_advanced']['marketo_rest_webform_capture_method'] = array(
     '#title' => t('Capture Method'),
@@ -72,7 +71,7 @@ function marketo_rest_webform_settings_form($form, &$form_state, $node) {
     '#theme' => 'marketo_rest_webform_fieldmap',
   );
 
-  $default_options = array(RESTRKETO_REST_WEBFORM_COMPONENT_NONE => '- None -');
+  $default_options = array(MARKETO_REST_WEBFORM_COMPONENT_NONE => '- None -');
   $marketo_options = _marketo_rest_get_field_options();
   $options = array_merge($default_options, $marketo_options);
   $fieldmap = _marketo_rest_webform_get_mapped_fields($node->nid);
@@ -135,23 +134,23 @@ function _marketo_rest_webform_save_webform($form, &$form_state) {
     }
   }
 
-  db_merge(RESTRKETO_REST_SCHEREST_WEBFORM)
+  db_merge(MARKETO_REST_SCHEMA_WEBFORM)
     ->key(array('nid' => $nid))
     ->fields(array(
-      RESTRKETO_REST_WEBFORM_FIELD_ACTIVE => $values['marketo_rest_webform_is_active'],
-      RESTRKETO_REST_WEBFORM_OPTIONS => serialize($options),
+      MARKETO_REST_WEBFORM_FIELD_ACTIVE => $values['marketo_rest_webform_is_active'],
+      MARKETO_REST_WEBFORM_OPTIONS => serialize($options),
     ))
     ->execute();
 
   if (isset($form_state['values']['components'])) {
     foreach ($form_state['values']['components'] as $cid => $marketo) {
-      db_merge(RESTRKETO_REST_SCHEREST_WEBFORM_COMPONENT)
+      db_merge(MARKETO_REST_SCHEMA_WEBFORM_COMPONENT)
         ->key(array(
           'nid' => $nid,
           'cid' => $cid,
         ))
         ->fields(array(
-          RESTRKETO_REST_WEBFORM_COMPONENT_KEY => $marketo,
+          MARKETO_REST_WEBFORM_COMPONENT_KEY => $marketo,
         ))
         ->execute();
     }

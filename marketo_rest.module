@@ -23,7 +23,7 @@ define('MARKETO_REST_WEBFORM_COMPONENT_NONE', 'none');
 function marketo_rest_menu() {
   // Module settings.
   $items['admin/config/search/marketo_rest'] = array(
-    'title' => 'Marketo MA',
+    'title' => 'Marketo REST',
     'description' => 'Marketo REST configuration',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('marketo_rest_admin_settings_form'),
@@ -39,8 +39,8 @@ function marketo_rest_menu() {
 function marketo_rest_permission() {
   return array(
     'administer marketo' => array(
-      'title' => t('Administer Marketo MA'),
-      'description' => t('Configure Marketo settings such as page visibility, Munchkin keys, and SOAP API endpoint'),
+      'title' => t('Administer Marketo REST'),
+      'description' => t('Configure Marketo settings such as page visibility and REST API endpoint'),
     ),
   );
 }
@@ -51,7 +51,7 @@ function marketo_rest_permission() {
 function marketo_rest_cron_queue_info() {
   $queues = array();
   $queues['marketo_rest_lead'] = array(
-    'worker callback' => '_marketo_rest_associate_lead_soap',
+    'worker callback' => '_marketo_rest_associate_lead_rest',
     'time' => 30,
   );
   return $queues;
@@ -211,13 +211,9 @@ function _marketo_rest_associate_lead($lead) {
       }
       break;
 
-    case 'soap_async':
-      _marketo_rest_queue_lead($lead);
-      break;
-
-    case 'soap':
+    case 'rest':
     default:
-      _marketo_rest_associate_lead_soap($lead);
+      _marketo_rest_associate_lead_rest($lead);
       break;
   }
 }
@@ -296,20 +292,20 @@ function _marketo_rest_associate_lead_forms2($lead, $formid, $scheme = 'https', 
 }
 
 /**
- * Sends lead data using SOAP API.
+ * Sends lead data using REST API.
  * 
  * @param array $lead
  *   Lead data
  * 
  * @throws Exception
  */
-function _marketo_rest_associate_lead_soap($lead) {
-  if (_marketo_rest_soap_is_configured()) {
-    module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.soap');
+function _marketo_rest_associate_lead_rest($lead) {
+  if (_marketo_rest_rest_is_configured()) {
+    module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.rest');
 
-    $secret_key = variable_get('marketo_rest_soap_encryption_key');
-    $access_key = variable_get('marketo_rest_soap_user_id');
-    $soap_endpoint = variable_get('marketo_rest_soap_endpoint');
+    $secret_key = variable_get('marketo_rest_rest_encryption_key');
+    $access_key = variable_get('marketo_rest_rest_user_id');
+    $rest_endpoint = variable_get('marketo_rest_rest_endpoint');
 
     if (array_key_exists('marketoCookie', $lead)) {
       $mkto_trk = $lead['marketoCookie'];
@@ -319,13 +315,13 @@ function _marketo_rest_associate_lead_soap($lead) {
     }
 
     try {
-      $soap_settings = _marketo_rest_soap_proxy_settings();
-      $soap_settings['trace'] = variable_get('marketo_rest_logging', FALSE);
-      $client = new MarketoClient($access_key, $secret_key, $soap_endpoint, $soap_settings);
+      $rest_settings = _marketo_rest_rest_proxy_settings();
+      $rest_settings['trace'] = variable_get('marketo_rest_logging', FALSE);
+      $client = new MarketoClient($access_key, $secret_key, $rest_endpoint, $rest_settings);
       $sync = $client->syncLead($lead['data'], $lead['email'], $mkto_trk, array('extendedResponse' => TRUE));
       if ($sync['success']) {
         if (variable_get('marketo_rest_logging', FALSE)) {
-          watchdog('marketo', 'Associating lead !email [soap] <pre>@data @result</pre>', array(
+          watchdog('marketo', 'Associating lead !email [rest] <pre>@data @result</pre>', array(
             '!email' => $lead['email'],
             '@data' => print_r($lead['data'], TRUE),
             '@result' => print_r($sync['result'], TRUE),
@@ -333,7 +329,7 @@ function _marketo_rest_associate_lead_soap($lead) {
         }
       }
       else {
-        watchdog('marketo', 'Unable to sync lead !email [soap] <pre>@error</pre> Request XML: <pre>@request</pre> Response XML: <pre>@response</pre>', array(
+        watchdog('marketo', 'Unable to sync lead !email [rest] <pre>@error</pre> Request XML: <pre>@request</pre> Response XML: <pre>@response</pre>', array(
           '!email' => $lead['email'],
           '@error' => $sync['result'],
           '@request' => $client->__getLastRequest(),
@@ -342,7 +338,7 @@ function _marketo_rest_associate_lead_soap($lead) {
       }
     }
     catch (Exception $e) {
-      watchdog('marketo', 'Unable to sync lead !email [soap] <pre>@error</pre>', array('!email' => $lead['email'], '@error' => $e->getMessage()), WATCHDOG_ERROR);
+      watchdog('marketo', 'Unable to sync lead !email [rest] <pre>@error</pre>', array('!email' => $lead['email'], '@error' => $e->getMessage()), WATCHDOG_ERROR);
     }
   }
 }
@@ -400,25 +396,25 @@ function _marketo_rest_get_field_options($labels = TRUE, $sort = TRUE) {
 }
 
 /**
- * Retrieves fields from Marketo using SOAP API.
+ * Retrieves fields from Marketo using REST API.
  * 
  * @return array
  *   Marketo fields
  */
 function _marketo_rest_get_fields() {
   $result = array();
-  if (_marketo_rest_soap_is_configured()) {
-    module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.soap');
+  if (_marketo_rest_rest_is_configured()) {
+    module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.rest');
 
-    $secret_key = variable_get('marketo_rest_soap_encryption_key');
-    $access_key = variable_get('marketo_rest_soap_user_id');
-    $soap_endpoint = variable_get('marketo_rest_soap_endpoint');
+    $secret_key = variable_get('marketo_rest_rest_encryption_key');
+    $access_key = variable_get('marketo_rest_rest_user_id');
+    $rest_endpoint = variable_get('marketo_rest_rest_endpoint');
 
     try {
-      $client = new MarketoClient($access_key, $secret_key, $soap_endpoint, _marketo_rest_soap_proxy_settings());
+      $client = new MarketoClient($access_key, $secret_key, $rest_endpoint, _marketo_rest_rest_proxy_settings());
       $result = $client->getFields();
       if (!$result) {
-        watchdog('marketo', 'Unable to retrieve field information. Please check SOAP API configuration', WATCHDOG_ERROR);
+        watchdog('marketo', 'Unable to retrieve field information. Please check REST API configuration', WATCHDOG_ERROR);
       }
     }
     catch (Exception $e) {
@@ -430,22 +426,22 @@ function _marketo_rest_get_fields() {
 }
 
 /**
- * Retrieves a lead from Marketo using SOAP API.
+ * Retrieves a lead from Marketo using REST API.
  *
  * @return array
  *   Marketo lead
  */
 function marketo_rest_get_lead($key) {
   $result = array();
-  if (_marketo_rest_soap_is_configured()) {
-    module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.soap');
+  if (_marketo_rest_rest_is_configured()) {
+    module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.rest');
 
-    $secret_key = variable_get('marketo_rest_soap_encryption_key');
-    $access_key = variable_get('marketo_rest_soap_user_id');
-    $soap_endpoint = variable_get('marketo_rest_soap_endpoint');
+    $secret_key = variable_get('marketo_rest_rest_encryption_key');
+    $access_key = variable_get('marketo_rest_rest_user_id');
+    $rest_endpoint = variable_get('marketo_rest_rest_endpoint');
 
     try {
-      $client = new MarketoClient($access_key, $secret_key, $soap_endpoint, _marketo_rest_soap_proxy_settings());
+      $client = new MarketoClient($access_key, $secret_key, $rest_endpoint, _marketo_rest_rest_proxy_settings());
       $result = $client->getLead($key);
       if (!$result && variable_get('marketo_rest_logging', FALSE)) {
         watchdog('marketo', 'Lead data not found for !key', array('!key' => $key), WATCHDOG_INFO);
@@ -467,15 +463,15 @@ function marketo_rest_get_lead($key) {
  */
 function marketo_rest_get_lead_activity($key) {
   $result = array();
-  if (_marketo_rest_soap_is_configured()) {
-    module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.soap');
+  if (_marketo_rest_rest_is_configured()) {
+    module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.rest');
 
-    $secret_key = variable_get('marketo_rest_soap_encryption_key');
-    $access_key = variable_get('marketo_rest_soap_user_id');
-    $soap_endpoint = variable_get('marketo_rest_soap_endpoint');
+    $secret_key = variable_get('marketo_rest_rest_encryption_key');
+    $access_key = variable_get('marketo_rest_rest_user_id');
+    $rest_endpoint = variable_get('marketo_rest_rest_endpoint');
 
     try {
-      $client = new MarketoClient($access_key, $secret_key, $soap_endpoint, _marketo_rest_soap_proxy_settings());
+      $client = new MarketoClient($access_key, $secret_key, $rest_endpoint, _marketo_rest_rest_proxy_settings());
       $result = $client->getLeadActivity($key);
       if (!$result && variable_get('marketo_rest_logging', FALSE)) {
         watchdog('marketo', 'Lead data not found for !key', array('!key' => $key), WATCHDOG_INFO);
@@ -503,8 +499,8 @@ function _marketo_rest_is_configured() {
     $track = variable_get('marketo_rest_tracking_method');
     if (
       ($track == 'munchkin' & _marketo_rest_munchkin_is_configured()) ||
-      ($track == 'soap' & _marketo_rest_soap_is_configured()) ||
-      ($track == 'soap_async' & _marketo_rest_soap_is_configured())
+      ($track == 'rest' & _marketo_rest_rest_is_configured()) ||
+      ($track == 'rest_async' & _marketo_rest_rest_is_configured())
     ) {
       $configured = TRUE;
     }
@@ -566,20 +562,20 @@ function _marketo_rest_forms2_is_configured() {
 }
 
 /**
- * Tests to see if soap is configured.
+ * Tests to see if rest is configured.
  * 
  * @staticvar bool $configured
  * @return bool
- *   Returns TRUE is SOAP API settings are configured
+ *   Returns TRUE is REST API settings are configured
  */
-function _marketo_rest_soap_is_configured() {
+function _marketo_rest_rest_is_configured() {
   static $configured;
 
   if (!isset($configured)) {
     if (
-      variable_get('marketo_rest_soap_encryption_key', FALSE) &&
-      variable_get('marketo_rest_soap_endpoint', FALSE) &&
-      variable_get('marketo_rest_soap_user_id', FALSE)
+      variable_get('marketo_rest_rest_encryption_key', FALSE) &&
+      variable_get('marketo_rest_rest_endpoint', FALSE) &&
+      variable_get('marketo_rest_rest_user_id', FALSE)
     ) {
       $configured = TRUE;
     }
@@ -673,15 +669,15 @@ function _marketo_rest_visibility_roles($account) {
  * @return array
  *   Proxy settings
  */
-function _marketo_rest_soap_proxy_settings() {
+function _marketo_rest_rest_proxy_settings() {
   static $proxy;
 
   if (!isset($proxy)) {
     $proxy = array();
-    $proxy['proxy_host'] = variable_get('marketo_rest_soap_proxy_host', '');
-    $proxy['proxy_port'] = variable_get('marketo_rest_soap_proxy_port', '');
-    $proxy['proxy_login'] = variable_get('marketo_rest_soap_proxy_login', '');
-    $proxy['proxy_password'] = variable_get('marketo_rest_soap_proxy_password', '');
+    $proxy['proxy_host'] = variable_get('marketo_rest_rest_proxy_host', '');
+    $proxy['proxy_port'] = variable_get('marketo_rest_rest_proxy_port', '');
+    $proxy['proxy_login'] = variable_get('marketo_rest_rest_proxy_login', '');
+    $proxy['proxy_password'] = variable_get('marketo_rest_rest_proxy_password', '');
 
     if (empty($proxy['proxy_host'])) {
       unset($proxy['proxy_host']);

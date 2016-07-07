@@ -8,10 +8,10 @@ default:
                 marketo_rest_instance_host: change_me_to_a_live_value
                 marketo_rest_munchkin_account_id: change_me_to_a_live_value
                 marketo_rest_munchkin_api_private_key: change_me_to_a_live_value
-                marketo_rest_soap_encryption_key: change_me_to_a_live_value
-                marketo_rest_soap_endpoint: change_me_to_a_live_value
-                marketo_rest_soap_user_id: change_me_to_a_live_value
-                marketo_rest_tracking_method: soap
+                marketo_rest_rest_encryption_key: change_me_to_a_live_value
+                marketo_rest_rest_endpoint: change_me_to_a_live_value
+                marketo_rest_rest_user_id: change_me_to_a_live_value
+                marketo_rest_tracking_method: rest
               
               marketo_test_settings:
                 marketo_rest_instance_host: app-sjqe.marketo.com
@@ -49,13 +49,13 @@ default:
                   1: 0
                   2: 0
                   3: 0
-                marketo_rest_soap_encryption_key: ''
-                marketo_rest_soap_endpoint: ''
-                marketo_rest_soap_proxy_host: ''
-                marketo_rest_soap_proxy_login: ''
-                marketo_rest_soap_proxy_password: ''
-                marketo_rest_soap_proxy_port: ''
-                marketo_rest_soap_user_id: ''
+                marketo_rest_rest_encryption_key: ''
+                marketo_rest_rest_endpoint: ''
+                marketo_rest_rest_proxy_host: ''
+                marketo_rest_rest_proxy_login: ''
+                marketo_rest_rest_proxy_password: ''
+                marketo_rest_rest_proxy_port: ''
+                marketo_rest_rest_user_id: ''
                 marketo_rest_tracking_method: munchkin
                 marketo_rest_user_fieldmap: []
                 marketo_rest_user_triggers:
@@ -65,7 +65,7 @@ default:
                 marketo_rest_visibility_pages: '0'
                 marketo_rest_visibility_roles: '1'
                 marketo_rest_webform_fields: "FirstName|First Name\r\nLastName|Last Name\r\nEmail|Email Address"
-                marketo_rest_webform_fields_soap: 'Retrieve from Marketo'
+                marketo_rest_webform_fields_rest: 'Retrieve from Marketo'
 
               marketo_page_vis_only:
                 marketo_rest_munchkin_account_id: 000-AAA-000
