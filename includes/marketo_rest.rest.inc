@@ -55,10 +55,12 @@ interface MarketoInterface {
  */
 class MarketoClient implements MarketoInterface {
 
-  // http://app.marketo.com/soap/mktows/2_0?WSDL
   protected $clientId;
   protected $clientSecret;
   protected $endpoint;
+
+  // Temporary access token.
+  private $access_token;
 
   /**
    * Constructor for MarketoClient class.
@@ -77,15 +79,7 @@ class MarketoClient implements MarketoInterface {
     $this->clientSecret = $client_secret;
     $this->endpoint = $endpoint;
 
-    $wsdl = $this->endpoint . '?WSDL';
-
-    $default_options = array(
-      "connection_timeout" => 20,
-      "location" => $this->endpoint,
-    );
-    $rest_options = array_merge($default_options, $options);
-
-    $this->client = new SoapClient($wsdl, $rest_options);
+    $this->access_token = $this->getAccessToken($options);
   }
 
   /**
@@ -153,6 +147,34 @@ class MarketoClient implements MarketoInterface {
   }
 
   /**
+   * Get new REST access token.
+   *
+   * @param array $options
+   * @return bool
+   */
+  protected function getAccessToken(array $options) {
+    // Query Marketo for token.
+    $default_options = array(
+      'client_id' => $this->clientId,
+      'client_secret' => $this->clientSecret,
+      'grant_type' => 'client_credentials',
+    );
+
+    $rest_options = array_merge($default_options, $options);
+    $full_url = url($this->endpoint, array('query' => $rest_options));
+    $response = drupal_http_request($full_url);
+
+    if ($response->data) {
+      $res = json_decode($response->data);
+      if (!empty($res->access_token)) {
+        return $res->access_token;
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
    * Returns the XML sent in the last SOAP request.
    * 
    * @return string
@@ -162,7 +184,7 @@ class MarketoClient implements MarketoInterface {
   }
 
   /**
-   * Returns the XML received in the last SOAP response.
+   * Returns the XML received in the last REST response.
    *
    * @return string
    */
@@ -335,7 +357,7 @@ class MarketoClient implements MarketoInterface {
    * Parses lead results into a more useful format.
    * 
    * @param object $marketo_result
-   *   SOAP response
+   *   REST response
    * 
    * @return array
    *   An array of objects defining lead data
@@ -366,7 +388,7 @@ class MarketoClient implements MarketoInterface {
    * Parses lead activity results into a more useful format.
    * 
    * @param object $marketo_result
-   *   SOAP response
+   *   REST response
    * 
    * @return array
    *   An array of objects defining lead activity data
