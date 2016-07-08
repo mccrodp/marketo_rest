@@ -15,13 +15,13 @@ default:
           1: 0
           2: 0
           3: 0
-        marketo_rest_rest_client_secret: ''
-        marketo_rest_rest_endpoint: ''
+        marketo_rest_client_secret: ''
+        marketo_rest_endpoint: ''
         marketo_rest_rest_proxy_host: ''
         marketo_rest_rest_proxy_login: ''
         marketo_rest_rest_proxy_password: ''
         marketo_rest_rest_proxy_port: ''
-        marketo_rest_rest_client_id: ''
+        marketo_rest_client_id: ''
         marketo_rest_tracking_method: munchkin
         marketo_rest_user_fieldmap:
           field_first_name: none

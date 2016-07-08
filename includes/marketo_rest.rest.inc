@@ -51,9 +51,9 @@ interface MarketoInterface {
 }
 
 /**
- * Marketo Client
+ * Marketo REST Client
  */
-class MarketoClient implements MarketoInterface {
+class MarketoRestClient implements MarketoInterface {
 
   protected $clientId;
   protected $clientSecret;
@@ -161,7 +161,8 @@ class MarketoClient implements MarketoInterface {
     );
 
     $rest_options = array_merge($default_options, $options);
-    $full_url = url($this->endpoint, array('query' => $rest_options));
+    $identity_endpoint = $this->getIdentityEndpoint();
+    $full_url = url($identity_endpoint, array('query' => $rest_options));
     $response = drupal_http_request($full_url);
 
     if ($response->data) {
@@ -413,6 +414,19 @@ class MarketoClient implements MarketoInterface {
     }
 
     return $activity;
+  }
+
+  /**
+   * Get identity endpoint as per Marketo docs.
+   *
+   * @param null $endpoint
+   * @return string
+   */
+  private function getIdentityEndpoint($endpoint = null) {
+    if (!$endpoint) {
+      $endpoint = $this->endpoint;
+    }
+    return $endpoint . '/identity/oauth/token';
   }
 
 }
