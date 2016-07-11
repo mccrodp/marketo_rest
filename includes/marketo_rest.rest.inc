@@ -58,9 +58,11 @@ class MarketoRestClient implements MarketoInterface {
   protected $clientId;
   protected $clientSecret;
   protected $endpoint;
+  protected $identity;
 
   // Temporary access token.
   private $access_token;
+  private $access_token_expiry;
 
   /**
    * Constructor for MarketoClient class.
@@ -71,15 +73,93 @@ class MarketoRestClient implements MarketoInterface {
    *   A secret-key defined in Marketo admin
    * @param string $endpoint
    *   REST endpoint URL
+   * @param $identity
+   *   REST identity endpoint URL
    * @param array $options
-   *   Optional array of SoapClient options 
+   *   Optional array of SoapClient options
+   * @param string|null $token
+   *   REST access token
    */
-  public function __construct($client_id, $client_secret, $endpoint, $options = array()) {
+  public function __construct($client_id, $client_secret, $endpoint, $identity, $options = array(), $token = null) {
     $this->clientId = $client_id;
     $this->clientSecret = $client_secret;
     $this->endpoint = $endpoint;
+    $this->identity = $identity;
 
-    $this->access_token = $this->getAccessToken($options);
+    $this->access_token_json = $token;
+    $this->access_token = $this->getAccessToken($options, $token);
+  }
+
+  /**
+   * Get new REST access token.
+   *
+   * @param array|null $options
+   * @param string|null $token
+   *   Full access token JSON.
+   * @return bool
+   */
+  public function getAccessToken(array $options = array(), $token = null) {
+    // Load the access token from the (JSON) full token.
+    if ($token) {
+      $token = json_decode($token);
+      if (!empty($token['access_token'])) {
+        // Set new access token.
+        $this->access_token = $token['access_token'];
+        $this->access_token_expiry = $token['token_expiry'];
+      }
+    }
+    // Check if we have an access token or if token is valid.
+    if (!$this->access_token || $this->isAccessTokenExpired()) {
+      // Query Marketo for token.
+      $default_options = array(
+        'client_id' => $this->clientId,
+        'client_secret' => $this->clientSecret,
+        'grant_type' => 'client_credentials',
+      );
+
+      $rest_options = array_merge($default_options, $options);
+      $identity_endpoint = $this->getIdentityEndpoint();
+      $full_url = url($identity_endpoint, array('query' => $rest_options));
+      $response = drupal_http_request($full_url);
+
+      // Get the JSON access token from response.
+      if ($response->data) {
+        // Save the full access token for checking expiry etc.
+        $this->access_token_json = $response->data;
+        $token = json_decode($response->data);
+        if (!empty($token->access_token)) {
+          // Set new access token.
+          $this->access_token = $token->access_token;
+          $this->access_token_expiry = $this->calculateTokenExpiry($token->expires_in);
+        }
+      }
+    }
+
+    return $this->access_token;
+  }
+
+  /**
+   * Get the expiry time of access token.
+   *
+   * @return mixed
+   */
+  public function getAccessTokenExpiry() {
+    return $this->access_token_expiry;
+  }
+
+  /**
+   * Check if the given / current token is expired.
+   *
+   * @return bool
+   */
+  public function isAccessTokenExpired() {
+    // Check token expiry greater than current time.
+    if ($this->access_token_expiry > time()) {
+      // Token still valid.
+      return FALSE;
+    }
+    // Token expired.
+    return TRUE;
   }
 
   /**
@@ -144,35 +224,6 @@ class MarketoRestClient implements MarketoInterface {
     return $this->client->__soapCall(
         $operation, array($params), array(), $this->authenticationHeader()
     );
-  }
-
-  /**
-   * Get new REST access token.
-   *
-   * @param array $options
-   * @return bool
-   */
-  protected function getAccessToken(array $options) {
-    // Query Marketo for token.
-    $default_options = array(
-      'client_id' => $this->clientId,
-      'client_secret' => $this->clientSecret,
-      'grant_type' => 'client_credentials',
-    );
-
-    $rest_options = array_merge($default_options, $options);
-    $identity_endpoint = $this->getIdentityEndpoint();
-    $full_url = url($identity_endpoint, array('query' => $rest_options));
-    $response = drupal_http_request($full_url);
-
-    if ($response->data) {
-      $res = json_decode($response->data);
-      if (!empty($res->access_token)) {
-        return $res->access_token;
-      }
-    }
-
-    return FALSE;
   }
 
   /**
@@ -419,14 +470,25 @@ class MarketoRestClient implements MarketoInterface {
   /**
    * Get identity endpoint as per Marketo docs.
    *
-   * @param null $endpoint
+   * @param null $identity
+   *   Identity endpoint URL
    * @return string
    */
-  private function getIdentityEndpoint($endpoint = null) {
-    if (!$endpoint) {
-      $endpoint = $this->endpoint;
+  private function getIdentityEndpoint($identity = null) {
+    if (!$identity) {
+      $identity = $this->identity;
     }
-    return $endpoint . '/identity/oauth/token';
+    return $identity . '/oauth/token';
+  }
+
+  /**
+   * Calculate and return token expiry time based on time from now in seconds.
+   *
+   * @param $expires_in
+   * @return int
+   */
+  private function calculateTokenExpiry($expires_in) {
+    return time() + $expires_in;
   }
 
 }

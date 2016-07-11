@@ -306,6 +306,8 @@ function _marketo_rest_associate_lead_rest($lead) {
     $client_secret = variable_get('marketo_rest_client_secret');
     $client_id = variable_get('marketo_rest_client_id');
     $rest_endpoint = variable_get('marketo_rest_endpoint');
+    $rest_identity = variable_get('marketo_rest_identity');
+    $rest_token = variable_get('marketo_rest_token');
 
     if (array_key_exists('marketoCookie', $lead)) {
       $mkto_trk = $lead['marketoCookie'];
@@ -317,7 +319,8 @@ function _marketo_rest_associate_lead_rest($lead) {
     try {
       $rest_settings = _marketo_rest_rest_proxy_settings();
       $rest_settings['trace'] = variable_get('marketo_rest_logging', FALSE);
-      $client = new MarketoRestClient($client_id, $client_secret, $rest_endpoint, $rest_settings);
+      $client = new MarketoRestClient($client_id, $client_secret, $rest_endpoint, $rest_identity, $rest_settings, $rest_token);
+      _marketo_rest_persist_access_token($client->getAccessToken(), $client->getAccessTokenExpiry());
       $sync = $client->syncLead($lead['data'], $lead['email'], $mkto_trk, array('extendedResponse' => TRUE));
       if ($sync['success']) {
         if (variable_get('marketo_rest_logging', FALSE)) {
@@ -409,9 +412,12 @@ function _marketo_rest_get_fields() {
     $client_secret = variable_get('marketo_rest_client_secret');
     $client_id = variable_get('marketo_rest_client_id');
     $rest_endpoint = variable_get('marketo_rest_endpoint');
+    $rest_identity = variable_get('marketo_rest_identity');
+    $rest_token = variable_get('marketo_rest_token');
 
     try {
-      $client = new MarketoRestClient($client_id, $client_secret, $rest_endpoint, _marketo_rest_rest_proxy_settings());
+      $client = new MarketoRestClient($client_id, $client_secret, $rest_endpoint, $rest_identity, _marketo_rest_rest_proxy_settings(), $rest_token);
+      _marketo_rest_persist_access_token($client->getAccessToken(), $client->getAccessTokenExpiry());
       $result = $client->getFields();
       if (!$result) {
         watchdog('marketo', 'Unable to retrieve field information. Please check REST API configuration', WATCHDOG_ERROR);
@@ -439,9 +445,12 @@ function marketo_rest_get_lead($key) {
     $client_secret = variable_get('marketo_rest_client_secret');
     $client_id = variable_get('marketo_rest_client_id');
     $rest_endpoint = variable_get('marketo_rest_endpoint');
+    $rest_identity = variable_get('marketo_rest_endpoint');
+    $rest_token = variable_get('marketo_rest_token');
 
     try {
-      $client = new MarketoRestClient($client_id, $client_secret, $rest_endpoint, _marketo_rest_rest_proxy_settings());
+      $client = new MarketoRestClient($client_id, $client_secret, $rest_endpoint, $rest_identity, _marketo_rest_rest_proxy_settings(), $rest_token);
+      _marketo_rest_persist_access_token($client->getAccessToken(), $client->getAccessTokenExpiry());
       $result = $client->getLead($key);
       if (!$result && variable_get('marketo_rest_logging', FALSE)) {
         watchdog('marketo', 'Lead data not found for !key', array('!key' => $key), WATCHDOG_INFO);
@@ -469,9 +478,12 @@ function marketo_rest_get_lead_activity($key) {
     $client_secret = variable_get('marketo_rest_client_secret');
     $client_id = variable_get('marketo_rest_client_id');
     $rest_endpoint = variable_get('marketo_rest_endpoint');
+    $rest_identity = variable_get('marketo_rest_identity');
+    $rest_token = variable_get('marketo_rest_token');
 
     try {
-      $client = new MarketoRestClient($client_id, $client_secret, $rest_endpoint, _marketo_rest_rest_proxy_settings());
+      $client = new MarketoRestClient($client_id, $client_secret, $rest_endpoint, $rest_identity, _marketo_rest_rest_proxy_settings(), $rest_token);
+      _marketo_rest_persist_access_token($client->getAccessToken(), $client->getAccessTokenExpiry());
       $result = $client->getLeadActivity($key);
       if (!$result && variable_get('marketo_rest_logging', FALSE)) {
         watchdog('marketo', 'Lead data not found for !key', array('!key' => $key), WATCHDOG_INFO);
@@ -694,4 +706,14 @@ function _marketo_rest_rest_proxy_settings() {
   }
 
   return $proxy;
+}
+
+/**
+ * Save the access token and associated expiry time.
+ *
+ * @param $access_token
+ * @param $expiry
+ */
+function _marketo_rest_persist_access_token($access_token, $expiry) {
+  variable_set('marketo_rest_token', array('access_token' => $access_token, 'expiry' => $expiry));
 }
