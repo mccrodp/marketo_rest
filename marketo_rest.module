@@ -5,6 +5,8 @@
  * Module functions for Marketo REST.
  */
 
+define('MARKETO_REST_API_VERSION', 'v1');
+
 define('MARKETO_REST_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");
 define('MARKETO_REST_TRACKING_METHOD_DEFAULT', 'munchkin');
 define('MARKETO_REST_WEBFORM_FIELD_DEFAULTS', "FirstName|First Name\nLastName|Last Name\nEmail|Email Address");

@@ -301,13 +301,8 @@ function _marketo_rest_validate_rest_configuration($client_id, $client_secret, $
   try {
     $client = new MarketoRestClient($client_id, $client_secret, $endpoint, $identity, $proxy, $rest_token);
     _marketo_rest_persist_access_token($client->getAccessToken(), $client->getAccessTokenExpiry());
-//    $result = $client->getFields();
-//    if (!$result) {
-//      $result = FALSE;
-//    }
-    $result = NULL;
-    // @todo: replace with test for field retrieval over REST.
-    if ($client->isAccessTokenExpired()) {
+    $result = $client->getFields();
+    if (!$result) {
       $result = FALSE;
     }
   }

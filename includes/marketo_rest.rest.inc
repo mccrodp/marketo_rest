@@ -85,26 +85,25 @@ class MarketoRestClient implements MarketoInterface {
     $this->clientSecret = $client_secret;
     $this->endpoint = $endpoint;
     $this->identity = $identity;
-
-    $this->access_token_json = $token;
-    $this->access_token = $this->getAccessToken($options, $token);
+    $this->getAccessToken($options, $token);
   }
 
   /**
    * Get new REST access token.
    *
    * @param array|null $options
-   * @param string|null $token
+   * @param array|null $token
    *   Full access token JSON.
    * @return bool
    */
-  public function getAccessToken(array $options = array(), $token = null) {
+  public function getAccessToken(array $options = array(), array $token = null) {
     // Load the access token from the (JSON) full token.
     if ($token) {
-      $token = json_decode($token);
       if (!empty($token['access_token'])) {
         // Set new access token.
         $this->access_token = $token['access_token'];
+      }
+      if (!empty($token['token_expiry'])) {
         $this->access_token_expiry = $token['token_expiry'];
       }
     }
@@ -119,18 +118,15 @@ class MarketoRestClient implements MarketoInterface {
 
       $rest_options = array_merge($default_options, $options);
       $identity_endpoint = $this->getIdentityEndpoint();
-      $full_url = url($identity_endpoint, array('query' => $rest_options));
-      $response = drupal_http_request($full_url);
+      $response = $this->requestToken($identity_endpoint, $rest_options);
 
       // Get the JSON access token from response.
       if ($response->data) {
-        // Save the full access token for checking expiry etc.
-        $this->access_token_json = $response->data;
-        $token = json_decode($response->data);
-        if (!empty($token->access_token)) {
+        $token = drupal_json_decode($response->data);
+        if (!empty($token['access_token'])) {
           // Set new access token.
-          $this->access_token = $token->access_token;
-          $this->access_token_expiry = $this->calculateTokenExpiry($token->expires_in);
+          $this->access_token = $token['access_token'];
+          $this->access_token_expiry = $this->calculateTokenExpiry($token['expires_in']);
         }
       }
     }
@@ -154,7 +150,7 @@ class MarketoRestClient implements MarketoInterface {
    */
   public function isAccessTokenExpired() {
     // Check token expiry greater than current time.
-    if ($this->access_token_expiry > time()) {
+    if ($this->access_token_expiry && $this->access_token_expiry > time()) {
       // Token still valid.
       return FALSE;
     }
@@ -214,16 +210,19 @@ class MarketoRestClient implements MarketoInterface {
    * 
    * @param string $operation
    *   The operation to execute
+   * @param $api
    * @param array $params
    *   Parameters to be sent with the request
    * 
    * @return object
    *   Response object
    */
-  protected function request($operation, $params) {
-    return $this->client->__soapCall(
-        $operation, array($params), array(), $this->authenticationHeader()
-    );
+  protected function request($operation, $api, $params = array()) {
+    $query = array();
+    if (!empty($params)) {
+      $query = $this->buildQuery($params);
+    }
+    return $this->restCall($operation, $api, $query);
   }
 
   /**
@@ -305,12 +304,11 @@ class MarketoRestClient implements MarketoInterface {
    * {@inheritdoc}
    */
   public function getFields() {
-    $params = array(
-      'objectName' => 'LeadRecord',
-    );
+    $api = 'leads/describe.json';
+    $params = array();
     try {
-      $result = $this->request('describeMObject', $params);
-      $fields = $this->prepareFieldResults($result);
+      $result = $this->request('GET', $api, $params);
+      $fields = $this->prepareFieldResults($result->data);
     }
     catch (Exception $e) {
       $fields = array();
@@ -353,19 +351,13 @@ class MarketoRestClient implements MarketoInterface {
    * Converts response into a more useful structure.
    * 
    * @param object $data
-   *   LeadRecord object definition
+   *   LeadRecord object description
    * 
    * @return array
    *   Key value pairs of fields
    */
   protected function prepareFieldResults($data) {
-    $fields = array();
-
-    foreach ($data->result->metadata->fieldList->field as $field) {
-      $fields[$field->name] = (array) $field;
-    }
-
-    return $fields;
+    return drupal_json_decode($data);
   }
 
   /**
@@ -489,6 +481,61 @@ class MarketoRestClient implements MarketoInterface {
    */
   private function calculateTokenExpiry($expires_in) {
     return time() + $expires_in;
+  }
+
+  /**
+   * Generate a build query.
+   *
+   * @param $params
+   * @return string
+   */
+  private function buildQuery($params) {
+    return drupal_http_build_query($params);
+  }
+
+  /**
+   * Make a request via REST API.
+   *
+   * @param $operation
+   * @param $api
+   * @param $query
+   * @param null $url
+   * @return object
+   */
+  private function restCall($operation, $api, $query, $url = null) {
+    if (!$url) {
+      $url = $this->getFullRestEndpoint();
+    }
+    // Add the API endpoint uri to the URL.
+    $url = $url . '/' . $api . '?access_token=' . $this->access_token;
+    $options = array(
+      'method' => $operation,
+      'data' => $query,
+    );
+
+    return drupal_http_request($url, $options);
+  }
+
+  /**
+   * Get the full REST API Endpoint.
+   *
+   * Rest endpoint with API version.
+   *
+   * @return string
+   */
+  private function getFullRestEndpoint() {
+    return $this->endpoint . '/' . MARKETO_REST_API_VERSION;
+  }
+
+  /**
+   * Request access token from server.
+   *
+   * @param $identity_endpoint
+   * @param $rest_options
+   * @return object
+   */
+  private function requestToken($identity_endpoint, $rest_options) {
+    return drupal_http_request($identity_endpoint . '?' . $this->buildQuery($rest_options));
   }
 
 }
