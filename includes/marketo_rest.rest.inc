@@ -8,7 +8,7 @@
 /**
  * Marketo Interface
  */
-interface MarketoInterface {
+interface MarketoRestInterface {
 
   /**
    * Retrieves list of defined fields.
@@ -18,22 +18,29 @@ interface MarketoInterface {
   /**
    * Retrieves lead information.
    * 
-   * @param string $key
-   *   Lead Key, typically email address
    * @param string $type
-   *   Lead key type, auto-detection attempted if not supplied
+   *   Filter type, typically email address
+   * @param string $values
+   *   Filter values
    */
-  public function getLead($key, $type);
+  public function getLead($type, $values);
 
   /**
-   * Retrieves lead activity information.
-   * 
-   * @param string $key
-   *   Lead Key, typically email address
-   * @param string $type
-   *   Lead key type, auto-detection attempted if not supplied
+   * Retrieves activity information.
+   *
+   * @param string $ids
+   *   Comma-separated list of activity ids
+   * @param string $token
+   *   Next page token from getPagingToken call
+   * @param string|null $lead_ids
+   *   A comma-separated list of lead IDs.
+   * @param string|null $list_id
+   *   For leads with in this given list
+   * @param int $batch_size
+   *   Default and max = 300
+   * @return mixed
    */
-  public function getLeadActivity($key, $type);
+  public function getLeadActivity($ids, $token, $lead_ids = null, $list_id = null, $batch_size = 300);
 
   /**
    * Inserts or updates a lead.
@@ -53,7 +60,7 @@ interface MarketoInterface {
 /**
  * Marketo REST Client
  */
-class MarketoRestClient implements MarketoInterface {
+class MarketoRestClient implements MarketoRestInterface {
 
   protected $clientId;
   protected $clientSecret;
@@ -63,6 +70,10 @@ class MarketoRestClient implements MarketoInterface {
   // Temporary access token.
   private $access_token;
   private $access_token_expiry;
+
+  // Latest request and response.
+  private $request;
+  private $response;
 
   /**
    * Constructor for MarketoClient class.
@@ -117,8 +128,7 @@ class MarketoRestClient implements MarketoInterface {
       );
 
       $rest_options = array_merge($default_options, $options);
-      $identity_endpoint = $this->getIdentityEndpoint();
-      $response = $this->requestToken($identity_endpoint, $rest_options);
+      $response = $this->request(MARKETO_REST_IDENTITY_API, $rest_options, 'GET', $this->getIdentityEndpoint());
 
       // Get the JSON access token from response.
       if ($response->data) {
@@ -159,27 +169,6 @@ class MarketoRestClient implements MarketoInterface {
   }
 
   /**
-   * Builds Marketo authentication header.
-   * 
-   * @return \SoapHeader
-   *   Marketo authentication header
-   */
-  protected function authenticationHeader() {
-    $timestamp = date("c");
-    $encrypt_string = $timestamp . $this->clientId;
-    $signature = hash_hmac('sha1', $encrypt_string, $this->clientSecret);
-
-    $data = new stdClass();
-    $data->mktowsUserId = $this->clientId;
-    $data->requestSignature = $signature;
-    $data->requestTimestamp = $timestamp;
-
-    $header = new SoapHeader('http://www.marketo.com/mktows/', 'AuthenticationHeader', $data);
-
-    return $header;
-  }
-
-  /**
    * Determines lead key type for a given key.
    * 
    * @param string $key
@@ -206,59 +195,83 @@ class MarketoRestClient implements MarketoInterface {
   }
 
   /**
-   * Sends request to Marketo.
-   * 
-   * @param string $operation
-   *   The operation to execute
+   * Constructs the request to create the REST call to Marketo.
+   *
    * @param $api
+   *   The API endpoint
    * @param array $params
    *   Parameters to be sent with the request
-   * 
+   * @param string $operation
+   *   The operation to execute
+   * @param null|string $url
    * @return object
    *   Response object
    */
-  protected function request($operation, $api, $params = array()) {
-    $query = array();
-    if (!empty($params)) {
-      $query = $this->buildQuery($params);
+  protected function request($api, $params = array(), $operation = 'GET', $url = null) {
+
+    $options = array();
+
+    // Set our REST endpoint if empty.
+    if (!$url) {
+      $url = $this->getFullRestEndpoint();
     }
-    return $this->restCall($operation, $api, $query);
+
+    // Add the access token unless we are querying for access token.
+    if ($api != MARKETO_REST_IDENTITY_API && $url != $this->identity) {
+      $params += array('access_token' => $this->access_token);
+    }
+
+    // Add the api endpoint to the url.
+    $url = $url . '/' . $api;
+
+    // Depending on operation we construct the REST call differently.
+    switch ($operation) {
+      case 'POST':
+        // Add the API endpoint uri to the URL.
+        $query = $this->buildQuery($params);
+        $options = array(
+          'method' => $operation,
+          'data' => $query,
+        );
+        break;
+      case 'GET':
+      default:
+        // GET requires query string rather than params in the body.
+        $url = $url . '?' . $this->buildQuery($params);
+        break;
+    }
+    return $this->restCall($url, $options);
   }
 
   /**
-   * Returns the XML sent in the last SOAP request.
+   * Returns the last REST request as JSON string.
    * 
    * @return string
    */
-  public function __getLastRequest() {
-    return $this->client->__getLastRequest();
+  public function getLastRequest() {
+    return $this->request;
   }
 
   /**
-   * Returns the XML received in the last REST response.
+   * Returns the last REST response as json string.
    *
    * @return string
    */
-  public function __getLastResponse() {
-    return $this->client->__getLastResponse();
+  public function getLastResponse() {
+    return $this->response;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getLead($key, $type = NULL) {
-    $lead = new stdClass();
-    $lead->leadKey = new stdClass();
-    $lead->leadKey->keyType = (is_null($type)) ? $this->keyType($key) : strtoupper($type);
-    $lead->leadKey->keyValue = $key;
-
+  public function getLead($type, $values) {
     try {
-      $result = $this->request('getLead', $lead);
+      $result = $this->request('leads.json', $values);
       $leads = $this->prepareLeadResults($result);
     }
     catch (Exception $e) {
 
-      if (isset($e->detail->serviceException->code) && $e->detail->serviceException->code == MarketoError::ERR_LEAD_NOT_FOUND) {
+      if (isset($e->detail->serviceException->code) && $e->detail->serviceException->code == MarketoRestError::ERR_LEAD_NOT_FOUND) {
         // No leads were found.
         $leads = array();
       }
@@ -273,22 +286,14 @@ class MarketoRestClient implements MarketoInterface {
   /**
    * {@inheritdoc}
    */
-  public function getLeadActivity($key, $type = NULL) {
-    $lead = new stdClass();
-    $lead->leadKey = new stdClass();
-    $lead->leadKey->keyType = (is_null($type)) ? $this->keyType($key) : strtoupper($type);
-    $lead->leadKey->keyValue = $key;
-    $lead->activityFilter = new stdClass();
-    $lead->startPosition = new stdClass();
-    $lead->batchSize = 100;
-
+  public function getLeadActivity($ids, $token, $lead_ids, $list_id, $batch_size) {
     try {
-      $result = $this->request('getLeadActivity', $lead);
+      $result = $this->request('activities.json');
       $activity = $this->prepareLeadActivityResults($result);
     }
     catch (Exception $e) {
 
-      if (isset($e->detail->serviceException->code) && $e->detail->serviceException->code == MarketoError::ERR_LEAD_NOT_FOUND) {
+      if (isset($e->detail->serviceException->code) && $e->detail->serviceException->code == MarketoRestError::ERR_LEAD_NOT_FOUND) {
         // No leads were found.
         $activity = array();
       }
@@ -304,10 +309,8 @@ class MarketoRestClient implements MarketoInterface {
    * {@inheritdoc}
    */
   public function getFields() {
-    $api = 'leads/describe.json';
-    $params = array();
     try {
-      $result = $this->request('GET', $api, $params);
+      $result = $this->request('leads/describe.json');
       $fields = $this->prepareFieldResults($result->data);
     }
     catch (Exception $e) {
@@ -350,7 +353,7 @@ class MarketoRestClient implements MarketoInterface {
   /**
    * Converts response into a more useful structure.
    * 
-   * @param object $data
+   * @param string $data
    *   LeadRecord object description
    * 
    * @return array
@@ -462,15 +465,10 @@ class MarketoRestClient implements MarketoInterface {
   /**
    * Get identity endpoint as per Marketo docs.
    *
-   * @param null $identity
-   *   Identity endpoint URL
    * @return string
    */
-  private function getIdentityEndpoint($identity = null) {
-    if (!$identity) {
-      $identity = $this->identity;
-    }
-    return $identity . '/oauth/token';
+  private function getIdentityEndpoint() {
+    return $this->identity;
   }
 
   /**
@@ -494,29 +492,6 @@ class MarketoRestClient implements MarketoInterface {
   }
 
   /**
-   * Make a request via REST API.
-   *
-   * @param $operation
-   * @param $api
-   * @param $query
-   * @param null $url
-   * @return object
-   */
-  private function restCall($operation, $api, $query, $url = null) {
-    if (!$url) {
-      $url = $this->getFullRestEndpoint();
-    }
-    // Add the API endpoint uri to the URL.
-    $url = $url . '/' . $api . '?access_token=' . $this->access_token;
-    $options = array(
-      'method' => $operation,
-      'data' => $query,
-    );
-
-    return drupal_http_request($url, $options);
-  }
-
-  /**
    * Get the full REST API Endpoint.
    *
    * Rest endpoint with API version.
@@ -528,19 +503,28 @@ class MarketoRestClient implements MarketoInterface {
   }
 
   /**
-   * Request access token from server.
+   * Make a REST request to the server.
    *
-   * @param $identity_endpoint
-   * @param $rest_options
+   * @param $url
+   * @param $options
    * @return object
    */
-  private function requestToken($identity_endpoint, $rest_options) {
-    return drupal_http_request($identity_endpoint . '?' . $this->buildQuery($rest_options));
+  private function restCall($url, $options) {
+    // Record the latest request.
+    $this->request = drupal_json_encode(
+      array(
+        'url' => $url,
+        'options' => $options
+    ));
+    $response = drupal_http_request($url, $options);
+    // Record the latest response.
+    $this->response = drupal_json_encode($response);
+    return $response;
   }
 
 }
 
-class MarketoError {
+class MarketoRestError {
 
   const ERR_REQ_ENTITY_TOO_LARGE = 413;
   const ERR_REQ_URI_TOO_LONG = 414;

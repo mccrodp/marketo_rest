@@ -6,6 +6,7 @@
  */
 
 define('MARKETO_REST_API_VERSION', 'v1');
+define('MARKETO_REST_IDENTITY_API', 'oauth/token');
 
 define('MARKETO_REST_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");
 define('MARKETO_REST_TRACKING_METHOD_DEFAULT', 'munchkin');
@@ -337,8 +338,8 @@ function _marketo_rest_associate_lead_rest($lead) {
         watchdog('marketo', 'Unable to sync lead !email [rest] <pre>@error</pre> Request XML: <pre>@request</pre> Response XML: <pre>@response</pre>', array(
           '!email' => $lead['email'],
           '@error' => $sync['result'],
-          '@request' => $client->__getLastRequest(),
-          '@response' => $client->__getLastResponse(),
+          '@request' => $client->getLastRequest(),
+          '@response' => $client->getLastResponse(),
           ), WATCHDOG_ERROR);
       }
     }
