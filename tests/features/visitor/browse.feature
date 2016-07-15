@@ -5,7 +5,7 @@ Feature: Browser tests
     Given all Marketo REST modules are clean and using "marketo_test_settings"
 
   @page_visibility
-  Scenario: Page visibilty when using default "All pages except those listed"
+  Scenario: Page visibility when using default "All pages except those listed"
     And I am logged in as a user with the "administrator" role
     
     When I am on the homepage
@@ -27,7 +27,7 @@ Feature: Browser tests
     Then Munchkin tracking should be disabled
     
   @page_visibility
-  Scenario: Page visibilty when using "Only the pages listed"
+  Scenario: Page visibility when using "Only the pages listed"
     Given I populate the Marketo REST config using "marketo_page_vis_only"
     And I am logged in as a user with the "administrator" role
     
@@ -50,7 +50,7 @@ Feature: Browser tests
     Then Munchkin tracking should be enabled
     
   @role_visibility
-  Scenario: Role visibilty when using default "All roles except those selected"
+  Scenario: Role visibility when using default "All roles except those selected"
     
     When I am an anonymous user
     And I am on the homepage
