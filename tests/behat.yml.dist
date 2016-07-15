@@ -8,9 +8,10 @@ default:
                 marketo_rest_instance_host: change_me_to_a_live_value
                 marketo_rest_munchkin_account_id: change_me_to_a_live_value
                 marketo_rest_munchkin_api_private_key: change_me_to_a_live_value
-                marketo_rest_client_secret: change_me_to_a_live_value
                 marketo_rest_endpoint: change_me_to_a_live_value
+                marketo_rest_indentity: change_me_to_a_live_value
                 marketo_rest_client_id: change_me_to_a_live_value
+                marketo_rest_client_secret: change_me_to_a_live_value
                 marketo_rest_tracking_method: rest
               
               marketo_test_settings:
@@ -49,13 +50,14 @@ default:
                   1: 0
                   2: 0
                   3: 0
-                marketo_rest_client_secret: ''
                 marketo_rest_endpoint: ''
+                marketo_rest_identity: ''
+                marketo_rest_client_id: ''
+                marketo_rest_client_secret: ''
                 marketo_rest_rest_proxy_host: ''
                 marketo_rest_rest_proxy_login: ''
                 marketo_rest_rest_proxy_password: ''
                 marketo_rest_rest_proxy_port: ''
-                marketo_rest_client_id: ''
                 marketo_rest_tracking_method: munchkin
                 marketo_rest_user_fieldmap: []
                 marketo_rest_user_triggers:
