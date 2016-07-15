@@ -35,7 +35,7 @@ before_install:
   - sh -e /etc/init.d/xvfb start
 
   # Drush and web server than can be run with drush.
-  - composer global require "youngj/httpserver:dev-master
+  - composer global require "youngj/httpserver:dev-master#41dd2b7"
   - composer global require drush/drush:~7
 
   # Ensure the PHP environment is ready.
