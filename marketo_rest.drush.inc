@@ -10,20 +10,20 @@
  */
 function marketo_rest_drush_command() {
   $items = array();
-  $items['mma-get-lead'] = array(
+  $items['mrest-get-lead'] = array(
     'description' => dt('Get Marketo lead and activity information for the given search criteria.'),
     'arguments' => array(
       'key' => dt('An email address, Marketo lead ID, Marketo _mkto_trk cookie, Drupal uid, or Drupal name'),
     ),
     'examples' => array(
-      'drush mma-get-lead john@example.com' => dt('Get leads with email address john@example.com.'),
-      'drush mmal john@example.com --activity' => dt('Get leads with email address john@example.com and include activity records.'),
-      'drush mmal john@example.com --activity --info=0' => dt('Show only activity for john@example.com'),
-      'drush mmal john@example.com --local' => dt('Get leads with email address john@example.com that also have a Drupal user account.'),
-      'drush mma-get-lead 14' => dt('Get leads for Marketo lead ID 14 or Drupal uid 14 and return merged results.'),
-      'drush mmal 14 --local' => dt('Get leads for Drupal uid 14 and ignores Marketo Lead ID 14.'),
-      'drush mmal 14 --remote' => dt('Get lead for Marketo lead ID 14 and ignores Drupal uid 14'),
-      'drush mmal "id:222-AAA-222&token:_mch-example.com-1384222270733-22222"' => dt('Get lead by _mkto_trk value.'),
+      'drush mrest-get-lead john@example.com' => dt('Get leads with email address john@example.com.'),
+      'drush mrestl john@example.com --activity' => dt('Get leads with email address john@example.com and include activity records.'),
+      'drush mrestl john@example.com --activity --info=0' => dt('Show only activity for john@example.com'),
+      'drush mrestl john@example.com --local' => dt('Get leads with email address john@example.com that also have a Drupal user account.'),
+      'drush mrest-get-lead 14' => dt('Get leads for Marketo lead ID 14 or Drupal uid 14 and return merged results.'),
+      'drush mrestl 14 --local' => dt('Get leads for Drupal uid 14 and ignores Marketo Lead ID 14.'),
+      'drush mrestl 14 --remote' => dt('Get lead for Marketo lead ID 14 and ignores Drupal uid 14'),
+      'drush mrestl "id:222-AAA-222&token:_mch-example.com-1384222270733-22222"' => dt('Get lead by _mkto_trk value.'),
     ),
     'options' => array(
       'activity' => dt('Show lead activity (OFF by default).'),
@@ -31,11 +31,11 @@ function marketo_rest_drush_command() {
       'local' => dt('Search only Drupal keys (mail, uid, name).'),
       'remote' => dt('Search only Marketo keys (mail, lead ID, cookie)'),
     ),
-    'aliases' => array('mmal'),
+    'aliases' => array('mrestl'),
   );
-  $items['mma-fields'] = array(
+  $items['mrest-fields'] = array(
     'description' => dt('Get Marketo fields.'),
-    'aliases' => array('mmaf'),
+    'aliases' => array('mrestf'),
     'outputformat' => array(
       'default' => 'table',
       'pipe-format' => 'list',
@@ -59,19 +59,19 @@ function marketo_rest_drush_command() {
       'output-data-type' => 'format-table',
     ),
   );
-  $items['mma-verify'] = array(
+  $items['mrest-verify'] = array(
     'description' => dt('Verify this site can connect to Marketo.'),
-    'aliases' => array('mmav'),
+    'aliases' => array('mrestv'),
   );
   return $items;
 }
 
 /**
- * Callback function for mma-get-lead.
+ * Callback function for mrest-get-lead.
  *
  * @param string $key
  */
-function drush_marketo_rest_mma_get_lead($key = NULL) {
+function drush_marketo_rest_mrest_get_lead($key = NULL) {
   if (is_null($key)) {
     drush_log('No key provided', 'error');
     return;
@@ -165,9 +165,9 @@ function drush_marketo_rest_mma_get_lead($key = NULL) {
 }
 
 /**
- * Callback function for mma-fields.
+ * Callback function for mrest-fields.
  */
-function drush_marketo_rest_mma_fields() {
+function drush_marketo_rest_mrest_fields() {
   $fields = _marketo_rest_get_fields();
   foreach ($fields as $key => $value) {
     $rows[$value['name']] = $value;
@@ -176,9 +176,9 @@ function drush_marketo_rest_mma_fields() {
 }
 
 /**
- * Callback function for mma-verify.
+ * Callback function for mrest-verify.
  */
-function drush_marketo_rest_mma_verify() {
+function drush_marketo_rest_mrest_verify() {
   $fields = _marketo_rest_get_fields();
   if (count($fields) > 0) {
     drush_log('Successfully connected to Marketo', 'success');

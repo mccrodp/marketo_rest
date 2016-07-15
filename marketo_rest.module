@@ -5,8 +5,11 @@
  * Module functions for Marketo REST.
  */
 
+// API version and endpoints.
 define('MARKETO_REST_API_VERSION', 'v1');
 define('MARKETO_REST_IDENTITY_API', 'oauth/token');
+define('MARKETO_REST_LEADS_API', 'leads.json');
+define('MARKETO_REST_ACTIVITIES_API', 'activities.json');
 
 define('MARKETO_REST_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");
 define('MARKETO_REST_TRACKING_METHOD_DEFAULT', 'munchkin');

@@ -1,8 +1,11 @@
-**Non functional development sandbox for new marketo_rest module**
+**Non functional development sandbox for the new marketo_rest module**
+* Help is welcomed; to test and report any issues in the issue queue, and also submit PRs :)
 
 # Marketo REST
 
-This module adds Marketo tracking capability to your Drupal site.
+This module adds Marketo tracking capability to your Drupal site. It is a fork of the
+[Marketo MA](https://www.drupal.org/project/marketo_ma) module. Big thanks to [jyokum](https://www.drupal.org/u/jyokum)
+for that.
 
 ## Requirements
 
@@ -38,7 +41,7 @@ metadata > Marketo REST. The direct path is admin/config/search/marketo_rest.
 ### <a id="api-configuration"></a> Basic Settings and API Configuration
 
 At a minimum, you need to provide your Marketo Account ID and Munchkin API
-Private Key. The Munchking API Private key can be set/retrieved on your Marketo
+Private Key. The Munchkin API Private key can be set/retrieved on your Marketo
 admin site under Admin > Integration > Munchkin > API Configuration.
 
 **Account ID**
@@ -63,35 +66,31 @@ Multiple options are available for how captured data is submitted to Marketo.
   Lead updates will be sent to Marketo as pages are viewed using the
   client-side Munchkin API.
 
-- **SOAP API (Synchronous)**
+- **REST API**
   Lead data will be sent to Marketo immediately but may increase page
   load time.
-
-- **SOAP API (Asynchronous)**
-  Lead updates are added to a queue when captured and data is sent to
-  Marketo each time cron runs. Ensure you are running cron regularly.
 
 **Munchkin Javascript API - API Private Key**
 Your Munchkin API Private key. This can be set/retrieved on your Marketo
 admin site under Admin > Integration > Munchkin > API Configuration.
 Additional information can be found in the Marketo article
-[Enable Munchkin API Use](http://community.marketo.com/MarketoTutorial?id=kA250000000Kz4eCAC).
+[Enable Munchkin API Use](http://developers.marketo.com/documentation/websites/munchkin-api/).
 
 **Munchkin Javascript API - Partition**
 This currently does nothing and is ignored.
 
-**SOAP API**
+**REST API**
 Values for these fields can be set/retrieved on your Marketo admin site under
-Admin > Integration > SOAP API. Additional information can be found in the
-Marketo article [Configuring Your SOAP API Settings](http://community.marketo.com/MarketoArticle?id=kA050000000KyoyCAC).
+Admin > Integration > REST API. Additional information can be found in the
+Marketo article [Configuring Your REST API Settings](http://developers.marketo.com/documentation/rest/).
 
 - REST endpoint
 - Client ID
 - Client Secret
 
-SOAP configuration will be validated upon save.
+REST configuration will be validated upon save.
 
-**SOAP API - SoapClient Proxy Settings**
+**REST API - Proxy Settings**
 Proxy settings can be set if your server needs to use a proxy for external requests.
 
 ### <a id="field-definition"></a> Field Definition
@@ -99,8 +98,8 @@ Proxy settings can be set if your server needs to use a proxy for external reque
 The fields configured here will be available for mapping to User and Webform fields.
 They should match those that are defined in your Marketo admin under
 Admin > Field Management. Additional information regarding Marketo fields can be
-found in the Marketo articles [Field Management](http://community.marketo.com/MarketoDeepDive?id=kA5500000008RWQCA2)
-and [Export a List of All Marketo API Field Names](http://community.marketo.com/MarketoArticle?id=kA050000000KytHCAS).
+found in the Marketo articles [Field Management](http://docs.marketo.com/display/public/DOCS/Field+Management)
+and [Export a List of All Marketo API Field Names](http://docs.marketo.com/display/public/DOCS/Export+a+List+of+All+Marketo+API+Field+Names).
 
 **Marketo Fields**
 This section should contain a pipe "|" delimited list of the fields in the format
@@ -153,8 +152,8 @@ configuration page found at admin/config/search/marketo_rest.
 
 1. Enable the Marketo REST User module.
 
-2. Ensure that SOAP API settings are configured in the API Configuration section.
-   User integration is dependant on the SOAP API and will leverage it regardless
+2. Ensure that REST API settings are configured in the API Configuration section.
+   User integration is dependant on the REST API and will leverage it regardless
    of which tracking method you have selected.
 
 3. In the User Integration section you will find options for activity triggers
@@ -168,7 +167,8 @@ configuration page found at admin/config/search/marketo_rest.
 
 5. Save configuration
 
-**It is not necessary to define a mapping for email address as this field is automatically mapped to the Marketo "Email" field.**
+**It is not necessary to define a mapping for email address as this field is automatically mapped to the Marketo "Email"
+field.**
 
 ### <a id="webform-integration"></a> Webform Integration (Requires Marketo REST Webform)
 

@@ -4,7 +4,7 @@ Feature: Travis CI
   As a developer
   I must ensure that the Travis CI test environment has been setup successfully
 
-  Scenario: Site is accessiable
+  Scenario: Site is accessible
     Given I am on the homepage
     Then I should see the heading "Welcome to Site-Install"
   

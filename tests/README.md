@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/MarketoREST/marketo_rest.svg?branch=7.x-1.x)](https://travis-ci.org/MarketoREST/marketo_rest)
 
 ## Install required components
-The Marketo MA test suite uses Behat. Set it up in the regular way.
+The Marketo REST test suite uses Behat. Set it up in the regular way.
 
 ```
 $ curl http://getcomposer.org/installer | php
@@ -9,7 +9,7 @@ $ php composer.phar install
 ```
 
 ## Configure Marketo test settings
-The Marketo MA module comes with a behat.yml.dist file which must be copied and configured for your specific environment.
+The Marketo REST module comes with a behat.yml.dist file which must be copied and configured for your specific environment.
 
 ```
 $ cd path/to/marketo_rest/tests

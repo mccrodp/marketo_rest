@@ -19,11 +19,11 @@ interface MarketoRestInterface {
    * Retrieves lead information.
    * 
    * @param string $type
-   *   Filter type, typically email address
+   *   Filter (key) type, typically email address
    * @param string $values
    *   Filter values
    */
-  public function getLead($type, $values);
+  public function getLead($values, $type = null);
 
   /**
    * Retrieves activity information.
@@ -44,17 +44,20 @@ interface MarketoRestInterface {
 
   /**
    * Inserts or updates a lead.
-   * 
-   * @param array $lead
-   *   Key value pairs to be associated with a lead
-   * @param string $key
-   *   Lead Key, typically email address
-   * @param object $cookie
-   *   Marketo cookie information
-   * @param array $options
-   *   Array of additional options to configure lead syncing
+   *
+   * @param $input
+   *   Array of lead records to create or update
+   * @param string $action
+   *   Request type: createOnly, updateOnly, createOrUpdate, createDuplicate
+   * @param null $field
+   *   Lookup field used to find duplicate, defaults to email if unspecified
+   * @param bool $async
+   *   Used to specify post processing when calling the creating/updating leads
+   * @param null $partition
+   *   If instance has lead partitions set up, you need to specify partitionName
+   * @return mixed
    */
-  public function syncLead($lead, $key, $cookie, $options);
+  public function syncLead($input, $action = 'createOrUpdate', $field = null, $async = FALSE, $partition = null);
 }
 
 /**
@@ -62,6 +65,7 @@ interface MarketoRestInterface {
  */
 class MarketoRestClient implements MarketoRestInterface {
 
+  // Identity and endpoints.
   protected $clientId;
   protected $clientSecret;
   protected $endpoint;
@@ -170,14 +174,19 @@ class MarketoRestClient implements MarketoRestInterface {
 
   /**
    * Determines lead key type for a given key.
-   * 
+   *
    * @param string $key
    *   The key to examine
-   * 
+   *
    * @return string
    *   Lead key type
    */
   protected function keyType($key) {
+    // If the key is an array, just check the first item.
+    if (is_array($key)) {
+      $key = array_shift($key);
+    }
+
     if (filter_var($key, FILTER_VALIDATE_EMAIL)) {
       $type = 'EMAIL';
     }
@@ -264,9 +273,19 @@ class MarketoRestClient implements MarketoRestInterface {
   /**
    * {@inheritdoc}
    */
-  public function getLead($type, $values) {
+  public function getLead($values, $type = null) {
+    // If we have no filterType key, determine key.
+    if (!$type) {
+      $type = $this->keyType($values);
+    }
+
+    $params = array(
+      'filterType' => $type,
+      'filterValues' => is_array($values) ? implode(',', $values) : $values,
+    );
+
     try {
-      $result = $this->request('leads.json', $values);
+      $result = $this->request(MARKETO_REST_LEADS_API, $params);
       $leads = $this->prepareLeadResults($result);
     }
     catch (Exception $e) {
@@ -286,9 +305,9 @@ class MarketoRestClient implements MarketoRestInterface {
   /**
    * {@inheritdoc}
    */
-  public function getLeadActivity($ids, $token, $lead_ids, $list_id, $batch_size) {
+  public function getLeadActivity($ids, $token, $lead_ids = null, $list_id = null, $batch_size = 300) {
     try {
-      $result = $this->request('activities.json');
+      $result = $this->request(MARKETO_REST_ACTIVITIES_API);
       $activity = $this->prepareLeadActivityResults($result);
     }
     catch (Exception $e) {
@@ -311,7 +330,7 @@ class MarketoRestClient implements MarketoRestInterface {
   public function getFields() {
     try {
       $result = $this->request('leads/describe.json');
-      $fields = $this->prepareFieldResults($result->data);
+      $fields = $this->prepareResults($result->data);
     }
     catch (Exception $e) {
       $fields = array();
@@ -323,31 +342,26 @@ class MarketoRestClient implements MarketoRestInterface {
   /**
    * {@inheritdoc}
    */
-  public function syncLead($lead, $key = NULL, $cookie = NULL, $options = array()) {
-    // Merge default options.
-    $options += array(
-      'returnLead' => FALSE,
-      'extendedResponse' => FALSE,
-    );
-
-    $params = new stdClass();
-    $params->marketoCookie = $cookie;
-    $params->returnLead = $options['returnLead'];
-    $params->leadRecord = $this->leadRecord($lead, $key);
-    $ret = array(
-      'success' => FALSE,
-      'result' => NULL,
+  public function syncLead($input, $action = 'createOrUpdate', $field = null, $async = FALSE, $partition = null) {
+    // Generate an array of leads.
+    $params = array(
+      'input' => $this->leadRecord($input, $field),
+      'action' => $action,
+      'lookupField' => $field,
+      'asyncProcessing' => $async,
+      'partitionName' => $partition,
     );
 
     try {
-      $ret['result'] = $this->request('syncLead', $params);
-      $ret['success'] = TRUE;
+      $response = $this->request(MARKETO_REST_LEADS_API, $params);
+      $result = $this->prepareResults($response);
+      $ret['success'] = $result['success'];
     }
     catch (Exception $e) {
       $ret['result'] = $e->getMessage();
       $ret['success'] = FALSE;
     }
-    return ($options['extendedResponse']) ? $ret : $ret['result'];
+    return $ret;
   }
 
   /**
@@ -359,7 +373,7 @@ class MarketoRestClient implements MarketoRestInterface {
    * @return array
    *   Key value pairs of fields
    */
-  protected function prepareFieldResults($data) {
+  protected function prepareResults($data) {
     return drupal_json_decode($data);
   }
 

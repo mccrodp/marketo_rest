@@ -16,17 +16,17 @@ Feature: Marketo REST Drush features
     
   Examples:
     | command      | alias | description        |
-    | mma-fields   | mmaf  | Get Marketo fields |
-    | mma-get-lead | mmal  | Get Marketo lead   |
-    | mma-verify   | mmav  | Verify this site   |
+    | mrest-fields   | mrestf  | Get Marketo fields |
+    | mrest-get-lead | mrestl  | Get Marketo lead   |
+    | mrest-verify   | mrestv  | Verify this site   |
 
   @live
   Scenario: Execute drush commands
-    Given I populate the Marketo MA config using "marketo_settings"
-    
-    When I run drush "mma-verify"
+    Given I populate the Marketo REST config using "marketo_settings"
+
+    When I run drush "mrest-verify"
     Then drush output should contain "Successfully connected to Marketo"
     
-    When I run drush "mma-fields"
+    When I run drush "mrest-fields"
     Then drush output should contain " Name "
     And drush output should contain " Label "

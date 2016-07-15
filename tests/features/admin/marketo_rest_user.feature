@@ -13,8 +13,8 @@ Feature: Marketo REST User features
       | user   | user   | field_company123   | text       | text_field  |
     And users:
       | name     | mail                     | field_firstname123 | field_lastname123 | field_company123 | pass     |
-      | mmatest1 | mmatest1@mma.example.com | Mma1               | Test1             | MREST Test Co.     | password |
-      | mmatest2 | mmatest2@mma.example.com | Mma2               | Test2             | MREST Test Co.     | password |
+      | mresttest1 | mresttest1@mrest.example.com | Mma1               | Test1             | MREST Test Co.     | password |
+      | mresttest2 | mresttest2@mrest.example.com | Mma2               | Test2             | MREST Test Co.     | password |
 
   @user_field_mapping
   Scenario: Ensure core and custom user fields can be mapped
@@ -53,11 +53,11 @@ Feature: Marketo REST User features
     And I go to "/user/logout"
 
     When I go to "/user/login"
-    And I enter "mmatest1" for "edit-name"
+    And I enter "mresttest1" for "edit-name"
     And I enter "password" for "edit-pass"
     And I press "Log in"
     Then Munchkin associateLead action should send data
       | field     | value                    |
-      | Email     | mmatest1@mma.example.com |
+      | Email     | mresttest1@mrest.example.com |
       | FirstName | Mma1                     |
       | LastName  | Test1                    |

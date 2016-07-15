@@ -5,4 +5,4 @@ Feature: Marketo REST Webform features
   I need all of these tests to run successfully
 
   Background: Fresh module install
-    Given all Marketo MA modules are clean and using "marketo_test_settings"
+    Given all Marketo REST modules are clean and using "marketo_test_settings"

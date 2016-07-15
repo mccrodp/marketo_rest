@@ -2,7 +2,7 @@
 Feature: Module permissions
   In order to prove that module permissions are working properly
   As a variety of user types
-  I need to attempt to accesss portions of the system ensuring expected results are returned
+  I need to attempt to access portions of the system ensuring expected results are returned
 
   Background: Fresh module install
     Given all Marketo REST modules are clean and using "marketo_test_settings"
@@ -22,13 +22,13 @@ Feature: Module permissions
     When I go to "/admin/config/search/marketo_rest"
     Then the response status code should be 200
     And I should see the heading "Marketo REST"
-    And I should see a "#marketo-ma-admin-settings-form" element
+    And I should see a "#marketo-rest-admin-settings-form" element
 
     Given I am logged in as a user with the "administer marketo" permission
     When I go to "/admin/config/search/marketo_rest"
     Then the response status code should be 200
     And I should see the heading "Marketo REST"
-    And I should see a "#marketo-ma-admin-settings-form" element
+    And I should see a "#marketo-rest-admin-settings-form" element
 
   @marketo_rest_user
   Scenario: Ensure Marketo REST User specific permissions work as expected
@@ -85,4 +85,4 @@ Feature: Module permissions
     And I am accessing "/webform/marketo" belonging to a "Webform" with the title "Testorama"
     Then the response status code should be 200
     And I should see the link "Marketo" in the "secondary tabs" region
-    And I should see a "#marketo-ma-webform-settings-form" element
+    And I should see a "#marketo-rest-webform-settings-form" element

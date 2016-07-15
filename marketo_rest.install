@@ -19,8 +19,11 @@ function marketo_rest_uninstall() {
   variable_del('marketo_rest_munchkin_tracking_code_type');
   variable_del('marketo_rest_pages');
   variable_del('marketo_rest_roles');
+  variable_del('marketo_rest_client_id');
   variable_del('marketo_rest_client_secret');
   variable_del('marketo_rest_endpoint');
+  variable_del('marketo_rest_identity');
+  variable_del('marketo_rest_token');
   variable_del('marketo_rest_rest_proxy_host');
   variable_del('marketo_rest_rest_proxy_login');
   variable_del('marketo_rest_rest_proxy_password');

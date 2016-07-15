@@ -12,7 +12,7 @@ Feature: Module setup
     Given I am logged in as an administrator
     When I go to "/admin/config/search/marketo_rest"
     Then I should see the heading "Marketo REST"
-    And I should see a "#marketo-ma-admin-settings-form" element
+    And I should see a "#marketo-rest-admin-settings-form" element
 
   @uninstall
   Scenario: Disable and uninstall all Marketo REST modules
