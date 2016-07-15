@@ -34,7 +34,8 @@ before_install:
   - export DISPLAY=:99.0
   - sh -e /etc/init.d/xvfb start
 
-  # Drush.
+  # Drush and web server than can be run with drush.
+  - composer global require "youngj/httpserver:dev-master
   - composer global require drush/drush:~7
 
   # Ensure the PHP environment is ready.
@@ -52,7 +53,7 @@ install:
   - export MODULE=$(basename $(pwd))
   - export MODULE_DIR=$DOCROOT/sites/all/modules/$MODULE
   - sudo chmod -R 777 /var
-  - drush dl drupal --destination=/var --drupal-project-rename=www --yes
+  - drush dl drupal-7 --destination=/var --drupal-project-rename=www --yes
   - drush si --db-url="mysql://$DB_USERNAME@127.0.0.1/$DATABASE" -r $DOCROOT --yes
   - ln -s $TRAVIS_BUILD_DIR $MODULE_DIR
   - cd $TRAVIS_BUILD_DIR/..
@@ -71,6 +72,10 @@ before_script:
   - cp behat.yml.dist behat.yml
   - composer install
   - vendor/bin/behat features/travis-ci.feature
+
+  # Start a web server.
+  - drush runserver 127.0.0.1:8080 &
+  - until netstat -an 2>/dev/null | grep '8080.*LISTEN'; do true; done
 
 script:
   # Marketo MA script commands.
