@@ -9,10 +9,18 @@ default:
                 marketo_rest_munchkin_account_id: change_me_to_a_live_value
                 marketo_rest_munchkin_api_private_key: change_me_to_a_live_value
                 marketo_rest_endpoint: change_me_to_a_live_value
-                marketo_rest_indentity: change_me_to_a_live_value
+                marketo_rest_identity: change_me_to_a_live_value
                 marketo_rest_client_id: change_me_to_a_live_value
                 marketo_rest_client_secret: change_me_to_a_live_value
                 marketo_rest_tracking_method: rest
+
+              marketo_rest_test_settings:
+                marketo_rest_mock: true
+                marketo_rest_instance_host: app-sjqe.marketo.com
+                marketo_rest_endpoint: https://app-sjqe.mktorest.com/rest
+                marketo_rest_identity: https://app-sjqe.mktorest.com/identity
+                marketo_rest_client_id: abcdefghijklmnopqrstuvwxyz
+                marketo_rest_client_secret: 1234567890-0987654322
               
               marketo_test_settings:
                 marketo_rest_instance_host: app-sjqe.marketo.com

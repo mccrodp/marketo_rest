@@ -94,6 +94,8 @@ class MarketoRestClient implements MarketoRestInterface {
    *   Optional array of SoapClient options
    * @param string|null $token
    *   REST access token
+   * @throws Exception
+   * @return MarketoRestClient
    */
   public function __construct($client_id, $client_secret, $endpoint, $identity, $options = array(), $token = null) {
     // When any of our required params are empty, throw exception.
@@ -105,6 +107,8 @@ class MarketoRestClient implements MarketoRestInterface {
     $this->endpoint = $endpoint;
     $this->identity = $identity;
     $this->getAccessToken($options, $token);
+
+    return $this;
   }
 
   /**

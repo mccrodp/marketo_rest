@@ -324,20 +324,28 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * @Given /^I send a GET request to Access Token Request URL$/
+   * @Given I send a GET request to an Access Token Request URL using :config
    */
-  public function iSendAGETRequestToAccessTokenRequestURL() {
+  public function iSendAGETRequestToAccessTokenRequestURL($config = 'marketo_default_settings') {
     module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.rest');
-    module_load_include('inc', 'marketo_rest', 'tests/includes/marketo_rest.mock');
 
-    $client_secret = variable_get('marketo_rest_client_secret');
-    $client_id = variable_get('marketo_rest_client_id');
-    $rest_endpoint = variable_get('marketo_rest_endpoint');
-    $rest_identity = variable_get('marketo_rest_identity');
-    $rest_token = variable_get('marketo_rest_token');
+    // Set default as the rest class.
+    $clientClass = 'MarketoRestClient';
 
+    // If we are not using the REST mock client.
+    if(!empty($this->params[$config]['marketo_rest_mock'])) {
+      $clientClass = 'MarketoMockClient';
+      module_load_include('inc', 'marketo_rest', 'tests/includes/marketo_rest.mock');
+    }
+
+    // Instantiate our client class with our init values.
     try {
-      $this->client = new MarketoMockClient($client_id, $client_secret, $rest_endpoint, $rest_identity, _marketo_rest_rest_proxy_settings(), $rest_token);
+      $this->client = new $clientClass(
+        $this->params[$config]['marketo_rest_client_id'],
+        $this->params[$config]['marketo_rest_client_secret'],
+        $this->params[$config]['marketo_rest_endpoint'],
+        $this->params[$config]['marketo_rest_identity']
+      );
     }
     catch (Exception $e) {
       throw new PendingException();

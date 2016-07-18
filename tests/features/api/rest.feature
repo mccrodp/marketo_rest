@@ -4,11 +4,11 @@ Feature: Marketo REST API features
   I need all of these tests to run successfully
 
   Background: Modules are clean and users are ready to test
-    Given all Marketo REST modules are clean and using "marketo_test_settings"
+    Given all Marketo REST modules are clean and using "marketo_settings"
 
   @api
   Scenario: Ensure we request, receive and store access token correctly
-    Given I send a GET request to Access Token Request URL
+    Given I send a GET request to an Access Token Request URL using "marketo_rest_test_settings"
 
     Then I have a valid access token value
     And I have a valid token expiry value
