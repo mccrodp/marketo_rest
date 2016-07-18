@@ -34,5 +34,5 @@ Tags have been placed on most scenarios so the scope testing can be controlled
 
 ```
 $ cd path/to/marketo_rest/tests
-$ bin/behat --tags='config&&live'
+$ vendor/bin/behat --tags='config&&live'
 ```

@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Hooks provided by Marketo REST .
+ * Hooks provided by Marketo REST.
  */
 
 /**

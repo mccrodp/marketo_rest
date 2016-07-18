@@ -1,5 +1,8 @@
 <?php
-
+/**
+ * @file
+ * Test methods for Marketo REST.
+ */
 use Behat\Behat\Tester\Exception\PendingException;
 use Drupal\DrupalExtension\Context\RawDrupalContext;
 use Drupal\DrupalExtension\Context\DrupalContext;
@@ -9,11 +12,7 @@ use Behat\Gherkin\Node\PyStringNode;
 use Behat\Gherkin\Node\TableNode;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 
-/**
- * Defines application features from the specific context.
- */
 class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext {
-
   private $params = array();
 
   /** @var DrupalContext */
@@ -21,6 +20,9 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
 
   /** @var DrushContext */
   private $drushContext;
+
+  /** @var MarketoMockClient */
+  private $client;
 
   /**
    * Keep track of fields so they can be cleaned up.
@@ -66,7 +68,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    * @Given all Marketo REST modules are clean
    * @Given all Marketo REST modules are clean and using :config
    */
-  public function allMarketoMaModulesClean($config = 'marketo_default_settings') {
+  public function allMarketoRESTModulesClean($config = 'marketo_default_settings') {
     $module_list = array('marketo_rest', 'marketo_rest_user', 'marketo_rest_webform');
 
     foreach ($module_list as $module) {
@@ -91,10 +93,10 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    *
    * @Given I reinstall all Marketo REST modules
    */
-  public function reinstallMarketoMaModules() {
+  public function reinstallMarketoRESTModules() {
     $module_list = array('marketo_rest', 'marketo_rest_user', 'marketo_rest_webform');
 
-    $this->uninstallMarketoMaModules();
+    $this->uninstallMarketoRESTModules();
     module_enable($module_list);
     drupal_flush_all_caches();
 
@@ -111,7 +113,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    *
    * @Given I uninstall all Marketo REST modules
    */
-  public function uninstallMarketoMaModules() {
+  public function uninstallMarketoRESTModules() {
     $module_list = array('marketo_rest', 'marketo_rest_user', 'marketo_rest_webform');
 
     module_disable($module_list);
@@ -199,9 +201,9 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   public function accessNodePath($path, $type, $title) {
     // @todo make this easily extensible.
     $node = (object) array(
-          'title' => $title,
-          'type' => $type,
-          'body' => $this->getRandom()->string(255),
+      'title' => $title,
+      'type' => $type,
+      'body' => $this->getRandom()->string(255),
     );
     $saved = $this->nodeCreate($node);
     // Set internal page on the new node.
@@ -235,7 +237,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    * | bundle | entity | field_name    | field_type | widget_type |
    * | user   | user   | field_company | text       | text_field  |
    * | ...    | ...    | ...           | ...        | ...         |
-   * 
+   *
    * @Given fields:
    */
   public function createCustomUserFields(TableNode $fieldTable) {
@@ -319,6 +321,92 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    */
   public function iTakeADump() {
     var_dump($this->params);
+  }
+
+  /**
+   * @Given /^I send a GET request to Access Token Request URL$/
+   */
+  public function iSendAGETRequestToAccessTokenRequestURL() {
+    module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.rest');
+    module_load_include('inc', 'marketo_rest', 'tests/includes/marketo_rest.mock');
+
+    $client_secret = variable_get('marketo_rest_client_secret');
+    $client_id = variable_get('marketo_rest_client_id');
+    $rest_endpoint = variable_get('marketo_rest_endpoint');
+    $rest_identity = variable_get('marketo_rest_identity');
+    $rest_token = variable_get('marketo_rest_token');
+
+    try {
+      $this->client = new MarketoMockClient($client_id, $client_secret, $rest_endpoint, $rest_identity, _marketo_rest_rest_proxy_settings(), $rest_token);
+    }
+    catch (Exception $e) {
+      throw new PendingException();
+    }
+  }
+
+  /**
+   * @Then /^I have a valid access token value$/
+   */
+  public function iHaveAValidAccessTokenValue() {
+    $expected_value = 'test';
+    try {
+      $token = $this->client->getAccessToken();
+      if ($token != $expected_value) {
+        $message = sprintf('Token: "%s" was not expected: "%s"', $token, $expected_value);
+        throw new \Exception($message);
+      }
+    }
+    catch (Exception $e) {
+      throw new PendingException();
+    }
+  }
+
+  /**
+   * @Given /^I have a valid token expiry value$/
+   */
+  public function iHaveAValidTokenExpiryValue() {
+    $expected_value = '100';
+    try {
+      $expiry = $this->client->getAccessTokenExpiry();
+      if ($expiry != $expected_value) {
+        $message = sprintf('Token Expiry: "%s" was not expected: "%s"', $expiry, $expected_value);
+        throw new \Exception($message);
+      }
+    }
+    catch (Exception $e) {
+      throw new PendingException();
+    }
+  }
+
+  /**
+   * @When /^I receive the access_token response string$/
+   */
+  public function iReceiveTheAccess_tokenResponseString() {
+    throw new PendingException();
+  }
+
+  /**
+   * @When I save the valid access_token response data
+   */
+  public function iSaveTheValidAccessTokenResponseData()
+  {
+    throw new PendingException();
+  }
+
+  /**
+   * @Then I should have a cached version of the :arg1
+   */
+  public function iShouldHaveACachedVersionOfThe($arg1)
+  {
+    throw new PendingException();
+  }
+
+  /**
+   * @Then I should have stored the calculated :arg1
+   */
+  public function iShouldHaveStoredTheCalculated($arg1)
+  {
+    throw new PendingException();
   }
 
 }

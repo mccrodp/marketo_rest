@@ -74,7 +74,7 @@ before_script:
   # Mysql might time out for long tests, increase the wait timeout.
   - mysql -e 'SET @@GLOBAL.wait_timeout=1200'
 
-  # Settings from MArketo MA module.
+  # Settings from Marketo MA module.
   - cd $MODULE_DIR/tests
   - cp behat.yml.dist behat.yml
   - composer install
@@ -85,6 +85,6 @@ before_script:
   - until netstat -an 2>/dev/null | grep '8888.*LISTEN'; do true; done
 
 script:
-  # Marketo MA script commands.
+  # Settings from Marketo MA module.
   - cd $MODULE_DIR/tests
   - vendor/bin/behat --tags="~travis&&~live"

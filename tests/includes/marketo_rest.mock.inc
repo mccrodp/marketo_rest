@@ -2,68 +2,13 @@
 
 /**
  * @file
- * Class and methods for interacting with the Marketo REST API.
+ * Class and methods to mock interacting with the Marketo REST API.
  */
 
 /**
- * Marketo Interface
+ * Marketo Mock Client
  */
-interface MarketoRestInterface {
-
-  /**
-   * Retrieves list of defined fields.
-   */
-  public function getFields();
-
-  /**
-   * Retrieves lead information.
-   * 
-   * @param string $type
-   *   Filter (key) type, typically email address
-   * @param string $values
-   *   Filter values
-   */
-  public function getLead($values, $type = null);
-
-  /**
-   * Retrieves activity information.
-   *
-   * @param string $ids
-   *   Comma-separated list of activity ids
-   * @param string $token
-   *   Next page token from getPagingToken call
-   * @param string|null $lead_ids
-   *   A comma-separated list of lead IDs.
-   * @param string|null $list_id
-   *   For leads with in this given list
-   * @param int $batch_size
-   *   Default and max = 300
-   * @return mixed
-   */
-  public function getLeadActivity($ids, $token, $lead_ids = null, $list_id = null, $batch_size = 300);
-
-  /**
-   * Inserts or updates a lead.
-   *
-   * @param $input
-   *   Array of lead records to create or update
-   * @param string $action
-   *   Request type: createOnly, updateOnly, createOrUpdate, createDuplicate
-   * @param null $field
-   *   Lookup field used to find duplicate, defaults to email if unspecified
-   * @param bool $async
-   *   Used to specify post processing when calling the creating/updating leads
-   * @param null $partition
-   *   If instance has lead partitions set up, you need to specify partitionName
-   * @return mixed
-   */
-  public function syncLead($input, $action = 'createOrUpdate', $field = null, $async = FALSE, $partition = null);
-}
-
-/**
- * Marketo REST Client
- */
-class MarketoRestClient implements MarketoRestInterface {
+class MarketoMockClient implements MarketoRestInterface {
 
   // Identity and endpoints.
   protected $clientId;
@@ -136,7 +81,7 @@ class MarketoRestClient implements MarketoRestInterface {
       );
 
       $rest_options = array_merge($default_options, $options);
-      $response = $this->request(MARKETO_REST_IDENTITY_API, $rest_options, 'GET', $this->getIdentityEndpoint());
+      $response = $this->requestToken(MARKETO_REST_IDENTITY_API, $rest_options, 'GET', $this->getIdentityEndpoint());
 
       // Get the JSON access token from response.
       if ($response->data) {
@@ -205,55 +150,6 @@ class MarketoRestClient implements MarketoRestInterface {
     }
 
     return $type;
-  }
-
-  /**
-   * Constructs the request to create the REST call to Marketo.
-   *
-   * @param $api
-   *   The API endpoint
-   * @param array $params
-   *   Parameters to be sent with the request
-   * @param string $operation
-   *   The operation to execute
-   * @param null|string $url
-   * @return object
-   *   Response object
-   */
-  protected function request($api, $params = array(), $operation = 'GET', $url = null) {
-
-    $options = array();
-
-    // Set our REST endpoint if empty.
-    if (!$url) {
-      $url = $this->getFullRestEndpoint();
-    }
-
-    // Add the access token unless we are querying for access token.
-    if ($api != MARKETO_REST_IDENTITY_API && $url != $this->identity) {
-      $params += array('access_token' => $this->access_token);
-    }
-
-    // Add the api endpoint to the url.
-    $url = $url . '/' . $api;
-
-    // Depending on operation we construct the REST call differently.
-    switch ($operation) {
-      case 'POST':
-        // Add the API endpoint uri to the URL.
-        $query = $this->buildQuery($params);
-        $options = array(
-          'method' => $operation,
-          'data' => $query,
-        );
-        break;
-      case 'GET':
-      default:
-        // GET requires query string rather than params in the body.
-        $url = $url . '?' . $this->buildQuery($params);
-        break;
-    }
-    return $this->restCall($url, $options);
   }
 
   /**
@@ -520,76 +416,8 @@ class MarketoRestClient implements MarketoRestInterface {
     return $this->endpoint . '/' . MARKETO_REST_API_VERSION;
   }
 
-  /**
-   * Make a REST request to the server.
-   *
-   * @param $url
-   * @param $options
-   * @return object
-   */
-  private function restCall($url, $options) {
-    // Record the latest request.
-    $this->request = drupal_json_encode(
-      array(
-        'url' => $url,
-        'options' => $options
-    ));
-    $response = drupal_http_request($url, $options);
-    // Record the latest response.
-    $this->response = drupal_json_encode($response);
-    return $response;
+  private function requestToken($MARKETO_REST_IDENTITY_API, $rest_options, $string, $getIdentityEndpoint) {
+    // @todo: return a JSON token.
   }
-
-}
-
-class MarketoRestError {
-
-  const ERR_REQ_ENTITY_TOO_LARGE = 413;
-  const ERR_REQ_URI_TOO_LONG = 414;
-  const ERR_BAD_GATEWAY = 502;
-  const ERR_ACCESS_TOKEN_EMPTY = 600;
-  const ERR_ACCESS_TOKEN_INVALID = 601;
-  const ERR_ACCESS_TOKEN_EXPIRED = 602;
-  const ERR_ACCESS_DENIED = 603;
-  const ERR_REQ_TIMEOUT = 604;
-  const ERR_HTTP_METHOD_UNSUPPORTED = 605;
-  const ERR_MAX_RATE_LIMIT_EXCEEDED = 606;
-  const ERR_DAILY_QUOTA_REACHED = 607;
-  const ERR_API_TEMP_UNAVAILABLE = 608;
-  const ERR_JSON_INVALID = 609;
-  const ERR_REQ_RESOURCE_NOT_FOUND = 610;
-  const ERR_SYSTEM_ERROR = 611;
-  const ERR_CONTENT_TYPE_INVALID = 612;
-  const ERR_MULTIPART_REQ_INVALID = 613;
-  const ERR_CONCURRENT_ACCESS_LIMIT = 615;
-  const ERR_FIELD_EMPTY = 701;
-  const ERR_RECORDS_NOT_FOUND = 702;
-  const ERR_FEATURE_NOT_ENABLED = 703;
-  const ERR_DATE_FORMAT_INVALID = 704;
-  const ERR_BUSINESS_RULE_VIOLATION = 709;
-  const ERR_PARENT_FOLDER_NOT_FOUND = 710;
-  const ERR_FOLDER_TYPE_INCOMPATIBLE = 711;
-  const ERR_PARAM_TYPE_MISMATCH = 1001;
-  const ERR_PARAM_MISSING_VALUE = 1002;
-  const ERR_DATA_INVALID = 1003;
-  const ERR_LEAD_NOT_FOUND = 1004;
-  const ERR_LEAD_ALREADY_EXISTS = 1005;
-  const ERR_FIELD_NOT_FOUND = 1006;
-  const ERR_MULTIPLE_LEAD_MATCH = 1007;
-  const ERR_PARTITION_ACCESS_DENIED = 1008;
-  const ERR_PARTITION_NAME_UNSPECIFIED = 1009;
-  const ERR_PARTITION_UPDATE_NOT_ALLOWED = 1010;
-  const ERR_FIELD_NOT_SUPPORTED = 1011;
-  const ERR_COOKIE_VAL_INVALID = 1012;
-  const ERR_OBJECT_NOT_FOUND = 1013;
-  const ERR_OBJECT_CREATE_FAILED = 1014;
-  const ERR_LEAD_NOT_IN_LIST = 1015;
-  const ERR_TOO_MANY_IMPORTS = 1016;
-  const ERR_OBJECT_ALREADY_EXISTS = 1017;
-  const ERR_CRM_ENABLED = 1018;
-  const ERR_IMPORT_IN_PROGRESS = 1019;
-  const ERR_TOO_MANY_CLONE_OP = 1020;
-  const ERR_COMPANY_UPDATE_NOT_ALLOWED = 1021;
-  const ERR_OBJECT_IN_USE = 1022;
 
 }
