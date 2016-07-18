@@ -1,13 +1,19 @@
 language: php
+sudo: false
 
 php:
   - 5.5
   - 5.6
-  - 7.0
 
-matrix:
-  allow_failures:
-    - php: 7.0
+addons:
+  apt:
+    packages:
+    - php5-cgi
+    - php5-mysql
+    - apache2
+    - libapache2-mod-php5
+    - php5-curl
+    - php5-intl
 
 env:
   global:
@@ -23,26 +29,34 @@ mysql:
 
 before_install:
   # Ensure we have the latest sources.
-  - sudo apt-get -y update
-
-  # Composer.
-  - sed -i '1i export PATH="$HOME/.composer/vendor/bin:$PATH"' $HOME/.bashrc
-  - source $HOME/.bashrc
-  - composer self-update
+#  - sudo apt-get -y update
+#
+#  # Composer.
+#  - sed -i '1i export PATH="$HOME/.composer/vendor/bin:$PATH"' $HOME/.bashrc
+#  - source $HOME/.bashrc
+#  - composer self-update
 
   # Export display & settings originally from Marketo MA.
   - export DISPLAY=:99.0
   - sh -e /etc/init.d/xvfb start
 
-  # Drush and web server than can be run with drush.
-  - composer global require "youngj/httpserver:dev-master#41dd2b7"
-  - composer global require drush/drush:7.0
-
-  # Ensure the PHP environment is ready.
-  - phpenv rehash
+#  # Drush and web server than can be run with drush.
+#  - composer global require "youngj/httpserver:dev-master#41dd2b7"
+#  - composer global require drush/drush:7.0
+#
+#  # Ensure the PHP environment is ready.
+#  - phpenv rehash
 
 install:
-  # Basic PHP packages.
+
+  # Add composer's global bin directory to the path
+  # See: https://github.com/drush-ops/drush#install---composer
+  - export PATH="$HOME/.composer/vendor/bin:$PATH"
+
+  # Install drush globally
+  - composer global require drush/drush:7.0
+
+  # Basic PHP packages. @todo: Remove if addon packages working.
   - sudo apt-get install -y --force-yes apache2 php5-cgi libapache2-mod-php5 php5-curl php5-mysql php5-intl
 
   # Settings from Marketo MA.
