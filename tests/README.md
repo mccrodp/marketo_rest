@@ -27,7 +27,7 @@ To execute all tests
 
 ```
 $ cd path/to/marketo_rest/tests
-$ bin/behat
+$ vendor/bin/behat
 ```
 
 Tags have been placed on most scenarios so the scope testing can be controlled
