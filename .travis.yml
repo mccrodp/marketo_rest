@@ -36,7 +36,7 @@ before_install:
 
   # Drush and web server than can be run with drush.
   - composer global require "youngj/httpserver:dev-master#41dd2b7"
-  - composer global require drush/drush:7.3.0
+  - composer global require drush/drush:7.1.0
 
   # Ensure the PHP environment is ready.
   - phpenv rehash
