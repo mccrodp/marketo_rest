@@ -194,7 +194,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   /**
    * Creates content of the given type and navigates to a path belonging to it.
    *
-   * @Given I am accessing :path belonging to a/an :type (content )with the title :title
+   * @Given I am accessing :path belonging to a/an :type (content) with the title :title
    */
   public function accessNodePath($path, $type, $title) {
     // @todo make this easily extensible.

@@ -1,6 +1,6 @@
 @api @marketo_rest_drush
 Feature: Marketo REST Drush features
-  In order to prove that drush funcitons are working properly
+  In order to prove that drush functions are working properly
   As a developer
   I need all of these tests to run successfully
 

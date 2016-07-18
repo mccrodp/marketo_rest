@@ -57,8 +57,16 @@ install:
   - drush si --db-url="mysql://$DB_USERNAME@127.0.0.1/$DATABASE" -r $DOCROOT --yes
   - ln -s $TRAVIS_BUILD_DIR $MODULE_DIR
   - cd $TRAVIS_BUILD_DIR/..
-  - wget http://selenium-release.storage.googleapis.com/2.47/selenium-server-standalone-2.47.1.jar
-  - java -jar selenium-server-standalone-2.47.1.jar > /dev/null 2>&1 &
+
+  # Setup display for Selenium
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start
+  - sleep 5
+
+   # Get Selenium
+  - wget http://selenium-release.storage.googleapis.com/2.42/selenium-server-standalone-2.42.1.jar
+  - java -jar selenium-server-standalone-2.42.1.jar > /dev/null 2>&1 &
+  - until netstat -an 2>/dev/null | grep '4444.*LISTEN'; do true; done
 
 before_script:
   # This fixes a fail when install Drupal.
@@ -73,9 +81,9 @@ before_script:
   - composer install
   - vendor/bin/behat features/travis-ci.feature
 
-  # Start a web server.
-  - drush runserver 127.0.0.1:8080 &
-  - until netstat -an 2>/dev/null | grep '8080.*LISTEN'; do true; done
+  # Start server
+  - drush runserver --server=builtin 8888 > /dev/null 2>&1 &
+  - until netstat -an 2>/dev/null | grep '8888.*LISTEN'; do true; done
 
 script:
   # Marketo MA script commands.
