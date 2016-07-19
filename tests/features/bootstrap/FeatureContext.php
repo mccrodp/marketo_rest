@@ -324,9 +324,9 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * @Given I send a GET request to an Access Token Request URL using :config
+   * @Given I have instantiated the Marketo rest client using :config
    */
-  public function iSendAGETRequestToAccessTokenRequestURL($config = 'marketo_default_settings') {
+  public function iHaveInstantiatedTheMarketoRestClientUsing($config = 'marketo_default_settings') {
     module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.rest');
 
     // Set default as the rest class.
@@ -348,41 +348,83 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
       );
     }
     catch (Exception $e) {
-      throw new PendingException();
+      throw new Exception('Could not instantiate a new "'. $clientClass . '"" class.');
     }
   }
 
   /**
-   * @Then /^I have a valid access token value$/
+   * @Given /^I request an access token$/
    */
-  public function iHaveAValidAccessTokenValue() {
-    $expected_value = 'test';
+  public function iRequestAnAccessToken() {
     try {
-      $token = $this->client->getAccessToken();
+      $this->client->getAccessToken();
+    }
+    catch (Exception $e) {
+      throw new Exception('Error requesting access token.');
+    }
+  }
+
+  /**
+   * @Then /^I should have generated a valid Access Token Request URL$/
+   */
+  public function iShouldHaveGeneratedAValidAccessTokenRequestURL() {
+    // https:// . marketo_rest_munchkin_account_id . MARKETO_REST_IDENTITY_API .
+    // getIdentityTokenOptions()
+    $expected_value = 'https://---.mktorest.com/identity/oauth/token?client_id=---&client_secret=---&grant_type=client_credentials';
+    try {
+      $request = drupal_json_decode($this->client->getLastRequest());
+      if ($request['url'] != $expected_value) {
+        $message = sprintf('URL: "%s" was not expected: "%s"', $request['url'], $expected_value);
+        throw new \Exception($message);
+      }
+    }
+    catch (Exception $e) {
+      throw new Exception('Could not access previous request data.');
+    }
+  }
+
+  /**
+   * @Then the response should contain json:
+   */
+  public function theResponseShouldContainJson(PyStringNode $string) {
+    try {
+      $request = drupal_json_decode($this->client->getLastRequest());
+      if ($request['data'] != $string) {
+        $message = sprintf('Data: "%s" was not expected: "%s"', $request['data'], $string);
+        throw new \Exception($message);
+      }
+    }
+    catch (Exception $e) {
+      throw new Exception('Could not access previous request data.');
+    }
+  }
+
+  /**
+   * @Given /^I have valid token access and expiry values$/
+   */
+  public function iHaveValidTokenAccessAndExpiryValues() {
+    $expected_value = '100';
+    try {
+      $token = $this->client->getStoredAccessToken();
       if ($token != $expected_value) {
         $message = sprintf('Token: "%s" was not expected: "%s"', $token, $expected_value);
         throw new \Exception($message);
       }
     }
     catch (Exception $e) {
-      throw new PendingException();
+      throw new Exception('Could not access token.');
     }
-  }
 
-  /**
-   * @Given /^I have a valid token expiry value$/
-   */
-  public function iHaveAValidTokenExpiryValue() {
     $expected_value = '100';
     try {
-      $expiry = $this->client->getAccessTokenExpiry();
+      $expiry = $this->client->getStoredAccessTokenExpiry();
       if ($expiry != $expected_value) {
         $message = sprintf('Token Expiry: "%s" was not expected: "%s"', $expiry, $expected_value);
         throw new \Exception($message);
       }
     }
     catch (Exception $e) {
-      throw new PendingException();
+      throw new Exception('Could not access token expiry.');
     }
   }
 
@@ -394,26 +436,23 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * @When I save the valid access_token response data
+   * @Given /^I save the valid access_token response data$/
    */
-  public function iSaveTheValidAccessTokenResponseData()
-  {
+  public function iSaveTheValidAccess_tokenResponseData() {
     throw new PendingException();
   }
 
   /**
-   * @Then I should have a cached version of the :arg1
+   * @Then /^I should have a cached version of the \'([^\']*)\'$/
    */
-  public function iShouldHaveACachedVersionOfThe($arg1)
-  {
+  public function iShouldHaveACachedVersionOfThe($arg1) {
     throw new PendingException();
   }
 
   /**
-   * @Then I should have stored the calculated :arg1
+   * @Given /^I should have stored the calculated \'([^\']*)\'$/
    */
-  public function iShouldHaveStoredTheCalculated($arg1)
-  {
+  public function iShouldHaveStoredTheCalculated($arg1) {
     throw new PendingException();
   }
 

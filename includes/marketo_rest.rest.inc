@@ -90,14 +90,10 @@ class MarketoRestClient implements MarketoRestInterface {
    *   REST endpoint URL
    * @param $identity
    *   REST identity endpoint URL
-   * @param array $options
-   *   Optional array of SoapClient options
-   * @param string|null $token
-   *   REST access token
    * @throws Exception
    * @return MarketoRestClient
    */
-  public function __construct($client_id, $client_secret, $endpoint, $identity, $options = array(), $token = null) {
+  public function __construct($client_id, $client_secret, $endpoint, $identity) {
     // When any of our required params are empty, throw exception.
     if (empty($client_id) || empty($client_secret) || empty($endpoint) || empty($identity)) {
       throw new Exception(t('One of the fields were empty: Client Id, Client Secret, Endpoint, Identity'));
@@ -106,7 +102,6 @@ class MarketoRestClient implements MarketoRestInterface {
     $this->clientSecret = $client_secret;
     $this->endpoint = $endpoint;
     $this->identity = $identity;
-    $this->getAccessToken($options, $token);
 
     return $this;
   }
@@ -120,37 +115,15 @@ class MarketoRestClient implements MarketoRestInterface {
    * @return bool
    */
   public function getAccessToken(array $options = array(), array $token = null) {
+
     // Load the access token from the (JSON) full token.
     if ($token) {
-      if (!empty($token['access_token'])) {
-        // Set new access token.
-        $this->access_token = $token['access_token'];
-      }
-      if (!empty($token['token_expiry'])) {
-        $this->access_token_expiry = $token['token_expiry'];
-      }
+      $this->loadStoredAccessToken($token);
     }
+
     // Check if we have an access token or if token is valid.
     if (!$this->access_token || $this->isAccessTokenExpired()) {
-      // Query Marketo for token.
-      $default_options = array(
-        'client_id' => $this->clientId,
-        'client_secret' => $this->clientSecret,
-        'grant_type' => 'client_credentials',
-      );
-
-      $rest_options = array_merge($default_options, $options);
-      $response = $this->request(MARKETO_REST_IDENTITY_API, $rest_options, 'GET', $this->getIdentityEndpoint());
-
-      // Get the JSON access token from response.
-      if ($response->data) {
-        $token = drupal_json_decode($response->data);
-        if (!empty($token['access_token'])) {
-          // Set new access token.
-          $this->access_token = $token['access_token'];
-          $this->access_token_expiry = $this->calculateTokenExpiry($token['expires_in']);
-        }
-      }
+      $this->getNewAccessToken($options);
     }
 
     return $this->access_token;
@@ -209,55 +182,6 @@ class MarketoRestClient implements MarketoRestInterface {
     }
 
     return $type;
-  }
-
-  /**
-   * Constructs the request to create the REST call to Marketo.
-   *
-   * @param $api
-   *   The API endpoint
-   * @param array $params
-   *   Parameters to be sent with the request
-   * @param string $operation
-   *   The operation to execute
-   * @param null|string $url
-   * @return object
-   *   Response object
-   */
-  protected function request($api, $params = array(), $operation = 'GET', $url = null) {
-
-    $options = array();
-
-    // Set our REST endpoint if empty.
-    if (!$url) {
-      $url = $this->getFullRestEndpoint();
-    }
-
-    // Add the access token unless we are querying for access token.
-    if ($api != MARKETO_REST_IDENTITY_API && $url != $this->identity) {
-      $params += array('access_token' => $this->access_token);
-    }
-
-    // Add the api endpoint to the url.
-    $url = $url . '/' . $api;
-
-    // Depending on operation we construct the REST call differently.
-    switch ($operation) {
-      case 'POST':
-        // Add the API endpoint uri to the URL.
-        $query = $this->buildQuery($params);
-        $options = array(
-          'method' => $operation,
-          'data' => $query,
-        );
-        break;
-      case 'GET':
-      default:
-        // GET requires query string rather than params in the body.
-        $url = $url . '?' . $this->buildQuery($params);
-        break;
-    }
-    return $this->restCall($url, $options);
   }
 
   /**
@@ -373,6 +297,48 @@ class MarketoRestClient implements MarketoRestInterface {
   }
 
   /**
+   * Load access token values from array into properties.
+   *
+   * @param array $token
+   */
+  protected function loadStoredAccessToken(array $token) {
+    if (!empty($token['access_token']) && !empty($token['token_expiry'])) {
+      // Set new access token.
+      $this->access_token = $token['access_token'];
+      $this->access_token_expiry = $token['token_expiry'];
+    }
+  }
+
+  /**
+   * Get the stored access token value.
+   *
+   * @return mixed
+   */
+  public function getStoredAccessToken() {
+    return $this->access_token;
+  }
+
+  /**
+   * Set the last REST request as JSON string.
+   *
+   * @param $request
+   * @return mixed
+   */
+  public function setLastRequest($request) {
+    return $this->request = $request;
+  }
+
+  /**
+   * Returns the last REST response as json string.
+   *
+   * @param $response
+   * @return mixed
+   */
+  public function setLastResponse($response) {
+    return $this->response = $response;
+  }
+
+  /**
    * Converts response into a more useful structure.
    * 
    * @param string $data
@@ -485,12 +451,79 @@ class MarketoRestClient implements MarketoRestInterface {
   }
 
   /**
+   * Extract the token data from the response array and load into properties.
+   *
+   * @param $data
+   */
+  protected function extractTokenDataFromResponse($data) {
+    // Get the JSON access token from response string.
+    $token = drupal_json_decode($data);
+    if (!empty($token['access_token'])) {
+      // Set new access token.
+      $this->access_token = $token['access_token'];
+      $this->access_token_expiry = $this->calculateTokenExpiry($token['expires_in']);
+    }
+  }
+
+  /**
+   * Get the stored access token expiry value.
+   *
+   * @return mixed
+   */
+  public function getStoredAccessTokenExpiry() {
+    return $this->access_token_expiry;
+  }
+
+  /**
+   * Get the options to send in access token request.
+   *
+   * @param array $options
+   * @return array
+   */
+  protected function getIdentityTokenOptions(array $options) {
+    // Query Marketo for token.
+    $rest_options = array(
+      'client_id' => $this->clientId,
+      'client_secret' => $this->clientSecret,
+      'grant_type' => 'client_credentials',
+    );
+
+    // Merge extra options if present.
+    if ($options) {
+      $rest_options = array_merge($rest_options, $options);
+    }
+
+    return $rest_options;
+  }
+
+  /**
    * Get identity endpoint as per Marketo docs.
    *
    * @return string
    */
-  private function getIdentityEndpoint() {
+  protected function getIdentityEndpoint() {
     return $this->identity;
+  }
+
+  /**
+   * Get the full REST API Endpoint.
+   *
+   * Rest endpoint with API version.
+   *
+   * @return string
+   */
+  protected function getFullRestEndpoint() {
+    return $this->endpoint . '/' . MARKETO_REST_API_VERSION;
+  }
+
+  /**
+   * Generate a build query.
+   *
+   * @param $params
+   * @return string
+   */
+  protected function buildQuery($params) {
+    return drupal_http_build_query($params);
   }
 
   /**
@@ -501,27 +534,6 @@ class MarketoRestClient implements MarketoRestInterface {
    */
   private function calculateTokenExpiry($expires_in) {
     return time() + $expires_in;
-  }
-
-  /**
-   * Generate a build query.
-   *
-   * @param $params
-   * @return string
-   */
-  private function buildQuery($params) {
-    return drupal_http_build_query($params);
-  }
-
-  /**
-   * Get the full REST API Endpoint.
-   *
-   * Rest endpoint with API version.
-   *
-   * @return string
-   */
-  private function getFullRestEndpoint() {
-    return $this->endpoint . '/' . MARKETO_REST_API_VERSION;
   }
 
   /**
@@ -542,6 +554,73 @@ class MarketoRestClient implements MarketoRestInterface {
     // Record the latest response.
     $this->response = drupal_json_encode($response);
     return $response;
+  }
+
+  /**
+   * Request a new access token.
+   *
+   * @param array $options
+   */
+  private function getNewAccessToken(array $options) {
+    // Send a GET request for the access token.
+    $response = $this->request(
+      MARKETO_REST_IDENTITY_API,
+      $this->getIdentityTokenOptions($options),
+      'GET',
+      $this->getIdentityEndpoint()
+    );
+
+    // Extract response data into properties and return raw data json string.
+    $this->extractTokenDataFromResponse($response->data);
+  }
+
+  /**
+   * Constructs the request to create the REST call to Marketo.
+   *
+   * @param $api
+   *   The API endpoint
+   * @param array $params
+   *   Parameters to be sent with the request
+   * @param string $operation
+   *   The operation to execute
+   * @param null|string $url
+   * @return object
+   *   Response object
+   */
+  private function request($api, $params = array(), $operation = 'GET', $url = null) {
+
+    $options = array();
+
+    // Set our REST endpoint if empty.
+    if (!$url) {
+      $url = $this->getFullRestEndpoint();
+    }
+
+    // Add the access token unless we are querying for access token.
+    if ($api != MARKETO_REST_IDENTITY_API && $url != $this->identity) {
+      $params += array('access_token' => $this->access_token);
+    }
+
+    // Add the api endpoint to the url.
+    $url = $url . '/' . $api;
+
+    // Depending on operation we construct the REST call differently.
+    switch ($operation) {
+      case 'POST':
+        // Add the API endpoint uri to the URL.
+        $query = $this->buildQuery($params);
+        $options = array(
+          'method' => $operation,
+          'data' => $query,
+        );
+        break;
+      case 'GET':
+      default:
+        // GET requires query string rather than params in the body.
+        $url = $url . '?' . $this->buildQuery($params);
+        break;
+    }
+    return $this->restCall($url, $options);
   }
 
 }

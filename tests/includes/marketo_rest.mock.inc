@@ -8,21 +8,7 @@
 /**
  * Marketo Mock Client
  */
-class MarketoMockClient implements MarketoRestInterface {
-
-  // Identity and endpoints.
-  protected $clientId;
-  protected $clientSecret;
-  protected $endpoint;
-  protected $identity;
-
-  // Temporary access token.
-  private $access_token;
-  private $access_token_expiry;
-
-  // Latest request and response.
-  private $request;
-  private $response;
+class MarketoMockClient extends MarketoRestClient implements MarketoRestInterface {
 
   /**
    * Constructor for MarketoClient class.
@@ -35,23 +21,16 @@ class MarketoMockClient implements MarketoRestInterface {
    *   REST endpoint URL
    * @param $identity
    *   REST identity endpoint URL
-   * @param array $options
-   *   Optional array of SoapClient options
-   * @param string|null $token
-   *   REST access token
    * @throws Exception
    * @return MarketoMockClient
    */
-  public function __construct($client_id, $client_secret, $endpoint, $identity, $options = array(), $token = null) {
+  public function __construct($client_id, $client_secret, $endpoint, $identity) {
     // When any of our required params are empty, throw exception.
     if (empty($client_id) || empty($client_secret) || empty($endpoint) || empty($identity)) {
       throw new Exception(t('One of the fields were empty: Client Id, Client Secret, Endpoint, Identity'));
     }
-    $this->clientId = $client_id;
-    $this->clientSecret = $client_secret;
-    $this->endpoint = $endpoint;
-    $this->identity = $identity;
-    $this->getAccessToken($options, $token);
+
+    parent::__construct($client_id, $client_secret, $endpoint, $identity);
 
     return $this;
   }
@@ -65,363 +44,123 @@ class MarketoMockClient implements MarketoRestInterface {
    * @return bool
    */
   public function getAccessToken(array $options = array(), array $token = null) {
+
     // Load the access token from the (JSON) full token.
     if ($token) {
-      if (!empty($token['access_token'])) {
-        // Set new access token.
-        $this->access_token = $token['access_token'];
-      }
-      if (!empty($token['token_expiry'])) {
-        $this->access_token_expiry = $token['token_expiry'];
-      }
+      $this->loadStoredAccessToken($token);
     }
+
     // Check if we have an access token or if token is valid.
-    if (!$this->access_token || $this->isAccessTokenExpired()) {
-      // Query Marketo for token.
-      $default_options = array(
-        'client_id' => $this->clientId,
-        'client_secret' => $this->clientSecret,
-        'grant_type' => 'client_credentials',
-      );
-
-      $rest_options = array_merge($default_options, $options);
-      $response = $this->requestToken(MARKETO_REST_IDENTITY_API, $rest_options, 'GET', $this->getIdentityEndpoint());
-
-      // Get the JSON access token from response.
-      if ($response->data) {
-        $token = drupal_json_decode($response->data);
-        if (!empty($token['access_token'])) {
-          // Set new access token.
-          $this->access_token = $token['access_token'];
-          $this->access_token_expiry = $this->calculateTokenExpiry($token['expires_in']);
-        }
-      }
+    if (!$this->getStoredAccessToken() || $this->isAccessTokenExpired()) {
+      $this->getNewAccessToken($options);
     }
 
-    return $this->access_token;
+    return $this->getStoredAccessToken();
   }
 
   /**
-   * Get the expiry time of access token.
+   * Mock a new access token.
    *
-   * @return mixed
+   * @param array $options
    */
-  public function getAccessTokenExpiry() {
-    return $this->access_token_expiry;
-  }
-
-  /**
-   * Check if the given / current token is expired.
-   *
-   * @return bool
-   */
-  public function isAccessTokenExpired() {
-    // Check token expiry greater than current time.
-    if ($this->access_token_expiry && $this->access_token_expiry > time()) {
-      // Token still valid.
-      return FALSE;
-    }
-    // Token expired.
-    return TRUE;
-  }
-
-  /**
-   * Determines lead key type for a given key.
-   *
-   * @param string $key
-   *   The key to examine
-   *
-   * @return string
-   *   Lead key type
-   */
-  protected function keyType($key) {
-    // If the key is an array, just check the first item.
-    if (is_array($key)) {
-      $key = array_shift($key);
-    }
-
-    if (filter_var($key, FILTER_VALIDATE_EMAIL)) {
-      $type = 'EMAIL';
-    }
-    elseif (is_int($key) || (is_string($key) && ctype_digit($key))) {
-      $type = 'IDNUM';
-    }
-    elseif (filter_var($key, FILTER_VALIDATE_REGEXP, array('options' => array('regexp' => '/^id:.*&token:.*/')))) {
-      $type = 'COOKIE';
-    }
-    else {
-      $type = 'UNKNOWN';
-    }
-
-    return $type;
-  }
-
-  /**
-   * Returns the last REST request as JSON string.
-   * 
-   * @return string
-   */
-  public function getLastRequest() {
-    return $this->request;
-  }
-
-  /**
-   * Returns the last REST response as json string.
-   *
-   * @return string
-   */
-  public function getLastResponse() {
-    return $this->response;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getLead($values, $type = null) {
-    // If we have no filterType key, determine key.
-    if (!$type) {
-      $type = $this->keyType($values);
-    }
-
-    $params = array(
-      'filterType' => $type,
-      'filterValues' => is_array($values) ? implode(',', $values) : $values,
+  private function getNewAccessToken(array $options) {
+    // Send a GET request for the access token.
+    $response = $this->request(
+      MARKETO_REST_IDENTITY_API,
+      $this->getIdentityTokenOptions($options),
+      'GET',
+      $this->getIdentityEndpoint()
     );
 
-    try {
-      $result = $this->request(MARKETO_REST_LEADS_API, $params);
-      $leads = $this->prepareLeadResults($result);
-    }
-    catch (Exception $e) {
-
-      if (isset($e->detail->serviceException->code) && $e->detail->serviceException->code == MarketoRestError::ERR_LEAD_NOT_FOUND) {
-        // No leads were found.
-        $leads = array();
-      }
-      else {
-        throw new Exception($e);
-      }
-    }
-
-    return $leads;
+    // Extract response data into properties and return raw data json string.
+    $this->extractTokenDataFromResponse($response->data);
   }
 
   /**
-   * {@inheritdoc}
-   */
-  public function getLeadActivity($ids, $token, $lead_ids = null, $list_id = null, $batch_size = 300) {
-    try {
-      $result = $this->request(MARKETO_REST_ACTIVITIES_API);
-      $activity = $this->prepareLeadActivityResults($result);
-    }
-    catch (Exception $e) {
-
-      if (isset($e->detail->serviceException->code) && $e->detail->serviceException->code == MarketoRestError::ERR_LEAD_NOT_FOUND) {
-        // No leads were found.
-        $activity = array();
-      }
-      else {
-        throw new Exception($e);
-      }
-    }
-
-    return $activity;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getFields() {
-    try {
-      $result = $this->request('leads/describe.json');
-      $fields = $this->prepareResults($result->data);
-    }
-    catch (Exception $e) {
-      $fields = array();
-    }
-
-    return $fields;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function syncLead($input, $action = 'createOrUpdate', $field = null, $async = FALSE, $partition = null) {
-    // Generate an array of leads.
-    $params = array(
-      'input' => $this->leadRecord($input, $field),
-      'action' => $action,
-      'lookupField' => $field,
-      'asyncProcessing' => $async,
-      'partitionName' => $partition,
-    );
-
-    try {
-      $response = $this->request(MARKETO_REST_LEADS_API, $params);
-      $result = $this->prepareResults($response);
-      $ret['success'] = $result['success'];
-    }
-    catch (Exception $e) {
-      $ret['result'] = $e->getMessage();
-      $ret['success'] = FALSE;
-    }
-    return $ret;
-  }
-
-  /**
-   * Converts response into a more useful structure.
-   * 
-   * @param string $data
-   *   LeadRecord object description
-   * 
-   * @return array
-   *   Key value pairs of fields
-   */
-  protected function prepareResults($data) {
-    return drupal_json_decode($data);
-  }
-
-  /**
-   * Creates proper structure for submitting a lead.
-   * 
-   * @param array $attributes
-   *   Key value pairs to be associated withi this lead
-   * @param string $key
-   *   Lead Key
-   * 
-   * @return \stdClass
-   *   Lead Record
-   */
-  protected function leadRecord($attributes, $key = NULL) {
-    $record = new stdClass();
-
-    if ($key) {
-      if (is_numeric($key)) {
-        $record->Id = $key;
-      }
-      else {
-        $record->Email = $key;
-      }
-    }
-
-    $record->leadAttributeList = new stdClass();
-    $record->leadAttributeList->attribute = array();
-
-    foreach ($attributes as $attribute => $value) {
-      $lead_attribute = new stdClass();
-      $lead_attribute->attrName = $attribute;
-      $lead_attribute->attrValue = $value;
-
-      array_push($record->leadAttributeList->attribute, $lead_attribute);
-    }
-
-    return $record;
-  }
-
-  /**
-   * Parses lead results into a more useful format.
-   * 
-   * @param object $marketo_result
-   *   REST response
-   * 
-   * @return array
-   *   An array of objects defining lead data
-   */
-  protected function prepareLeadResults($marketo_result) {
-    if ($marketo_result->result->count == 1) {
-      $leads[] = $marketo_result->result->leadRecordList->leadRecord;
-    }
-    elseif ($marketo_result->result->count > 1) {
-      $leads = $marketo_result->result->leadRecordList->leadRecord;
-    }
-    else {
-      $leads = array();
-    }
-
-    foreach ($leads as &$lead) {
-      $lead->attributes = array();
-      foreach ($lead->leadAttributeList->attribute as $attribute) {
-        $lead->attributes[$attribute->attrName] = $attribute->attrValue;
-      }
-      unset($lead->leadAttributeList);
-    }
-
-    return $leads;
-  }
-
-  /**
-   * Parses lead activity results into a more useful format.
-   * 
-   * @param object $marketo_result
-   *   REST response
-   * 
-   * @return array
-   *   An array of objects defining lead activity data
-   */
-  protected function prepareLeadActivityResults($marketo_result) {
-    if ($marketo_result->leadActivityList->returnCount > 1) {
-      $activity = $marketo_result->leadActivityList->activityRecordList->activityRecord;
-    }
-    elseif ($marketo_result->leadActivityList->returnCount == 1) {
-      $activity[] = $marketo_result->leadActivityList->activityRecordList->activityRecord;
-    }
-    else {
-      $activity = array();
-    }
-
-    foreach ($activity as &$event) {
-      $event->attributes = array();
-      foreach ($event->activityAttributes->attribute as $attribute) {
-        $event->attributes[$attribute->attrName] = $attribute->attrValue;
-      }
-      unset($event->activityAttributes);
-    }
-
-    return $activity;
-  }
-
-  /**
-   * Get identity endpoint as per Marketo docs.
+   * Return a Mock token.
    *
-   * @return string
+   * @return object
    */
-  private function getIdentityEndpoint() {
-    return $this->identity;
+  private function getMockToken() {
+    // Return a response object including 'data' property.
+    return (object) [
+      'data' => '{
+        "access_token":"88888888-4444-4444-4444-121212121212:ab",
+        "token_type":"bearer",
+        "expires_in":3599,
+        "scope":"john@example.com"
+        }',
+    ];
   }
 
   /**
-   * Calculate and return token expiry time based on time from now in seconds.
+   * Constructs the request to create the REST call to Marketo.
    *
-   * @param $expires_in
-   * @return int
+   * @param $api
+   *   The API endpoint
+   * @param array $params
+   *   Parameters to be sent with the request
+   * @param string $operation
+   *   The operation to execute
+   * @param null|string $url
+   * @return object
+   *   Response object
    */
-  private function calculateTokenExpiry($expires_in) {
-    return time() + $expires_in;
+  private function request($api, $params = array(), $operation = 'GET', $url = null) {
+
+    $options = array();
+
+    // Set our REST endpoint if empty.
+    if (!$url) {
+      $url = $this->getFullRestEndpoint();
+    }
+
+    // Add the access token unless we are querying for access token.
+    if ($api != MARKETO_REST_IDENTITY_API && $url != $this->identity) {
+      $params += array('access_token' => $this->access_token);
+    }
+
+    // Add the api endpoint to the url.
+    $url = $url . '/' . $api;
+
+    // Depending on operation we construct the REST call differently.
+    switch ($operation) {
+      case 'POST':
+        // Add the API endpoint uri to the URL.
+        $query = $this->buildQuery($params);
+        $options = array(
+          'method' => $operation,
+          'data' => $query,
+        );
+        break;
+      case 'GET':
+      default:
+        // GET requires query string rather than params in the body.
+        $url = $url . '?' . $this->buildQuery($params);
+        break;
+    }
+    return $this->restCall($url, $options);
   }
 
   /**
-   * Generate a build query.
+   * Make a REST request to the server.
    *
-   * @param $params
-   * @return string
+   * @param $url
+   * @param $options
+   * @return object
    */
-  private function buildQuery($params) {
-    return drupal_http_build_query($params);
-  }
-
-  /**
-   * Get the full REST API Endpoint.
-   *
-   * Rest endpoint with API version.
-   *
-   * @return string
-   */
-  private function getFullRestEndpoint() {
-    return $this->endpoint . '/' . MARKETO_REST_API_VERSION;
-  }
-
-  private function requestToken($MARKETO_REST_IDENTITY_API, $rest_options, $string, $getIdentityEndpoint) {
-    // @todo: return a JSON token.
+  private function restCall($url, $options) {
+    // Record the latest request.
+    $this->setLastRequest(drupal_json_encode(
+      array(
+        'url' => $url,
+        'options' => $options
+      )));
+    // @todo: comment out and replace response with getMockToken() or getMockData().
+    $response = drupal_http_request($url, $options);
+    // Record the latest response.
+    $this->setLastResponse(drupal_json_encode($response));
+    return $response;
   }
 
 }
