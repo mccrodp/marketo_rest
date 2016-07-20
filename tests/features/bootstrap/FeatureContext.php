@@ -365,15 +365,15 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * @Then /^I should have generated a valid Access Token Request URL$/
+   * @Then I should have generated a valid Access Token Request URL
    */
   public function iShouldHaveGeneratedAValidAccessTokenRequestURL() {
-    // https:// . marketo_rest_munchkin_account_id . MARKETO_REST_IDENTITY_API .
-    // getIdentityTokenOptions()
-    $expected_value = 'https://---.mktorest.com/identity/oauth/token?client_id=---&client_secret=---&grant_type=client_credentials';
+    $options = $this->client->getIdentityTokenOptions();
+    $query = $this->client->buildQuery($options);
+    $expected_value = $this->client->getIdentityEndpoint() . '/' . MARKETO_REST_IDENTITY_API . '?' . $query;
     try {
-      $request = drupal_json_decode($this->client->getLastRequest());
-      if ($request['url'] != $expected_value) {
+      $request = json_decode($this->client->getLastRequest());
+      if ($request->url != $expected_value) {
         $message = sprintf('URL: "%s" was not expected: "%s"', $request['url'], $expected_value);
         throw new \Exception($message);
       }
@@ -388,10 +388,15 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    */
   public function theResponseShouldContainJson(PyStringNode $string) {
     try {
-      $request = drupal_json_decode($this->client->getLastRequest());
-      if ($request['data'] != $string) {
-        $message = sprintf('Data: "%s" was not expected: "%s"', $request['data'], $string);
-        throw new \Exception($message);
+      $expected_value = json_decode($string->getRaw());
+      $response = json_decode($this->client->getLastResponse());
+      $response_data = json_decode($response->data);
+      // Cycle through the expected JSON and check for match.
+      foreach ($expected_value as $key => $value) {
+        if ($response_data->{$key} != $value) {
+          $message = sprintf('JSON mismatch: "%s" value was not equal', $key);
+          throw new \Exception($message);
+        }
       }
     }
     catch (Exception $e) {
@@ -400,60 +405,36 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * @Given /^I have valid token access and expiry values$/
+   * @Then I have stored the access token: :expected_token
    */
-  public function iHaveValidTokenAccessAndExpiryValues() {
-    $expected_value = '100';
+  public function iHaveStoredTheAccessToken($expected_token) {
     try {
       $token = $this->client->getStoredAccessToken();
-      if ($token != $expected_value) {
-        $message = sprintf('Token: "%s" was not expected: "%s"', $token, $expected_value);
+      if ($token != $expected_token) {
+        $message = sprintf('Token: "%s" was not expected: "%s"', $token, $expected_token);
         throw new \Exception($message);
       }
     }
     catch (Exception $e) {
       throw new Exception('Could not access token.');
     }
+  }
 
-    $expected_value = '100';
+  /**
+   * @Then /^I have stored a valid token expiry timestamp/
+   */
+  public function iHaveStoredAValidTokenExpiryTimestamp() {
     try {
       $expiry = $this->client->getStoredAccessTokenExpiry();
-      if ($expiry != $expected_value) {
-        $message = sprintf('Token Expiry: "%s" was not expected: "%s"', $expiry, $expected_value);
+      $now = time();
+      if ($now >= $expiry) {
+        $message = sprintf('Token Expired: current timestamp "%s" after token expired timestamp: "%s"', $now, $expiry);
         throw new \Exception($message);
       }
     }
     catch (Exception $e) {
       throw new Exception('Could not access token expiry.');
     }
-  }
-
-  /**
-   * @When /^I receive the access_token response string$/
-   */
-  public function iReceiveTheAccess_tokenResponseString() {
-    throw new PendingException();
-  }
-
-  /**
-   * @Given /^I save the valid access_token response data$/
-   */
-  public function iSaveTheValidAccess_tokenResponseData() {
-    throw new PendingException();
-  }
-
-  /**
-   * @Then /^I should have a cached version of the \'([^\']*)\'$/
-   */
-  public function iShouldHaveACachedVersionOfThe($arg1) {
-    throw new PendingException();
-  }
-
-  /**
-   * @Given /^I should have stored the calculated \'([^\']*)\'$/
-   */
-  public function iShouldHaveStoredTheCalculated($arg1) {
-    throw new PendingException();
   }
 
 }

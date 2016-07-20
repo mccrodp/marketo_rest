@@ -17,13 +17,8 @@ Feature: Marketo REST API features
     "access_token":"88888888-4444-4444-4444-121212121212:ab",
     "token_type":"bearer",
     "expires_in":3599,
-    "scope":"john@example.com"
+    "scope":"john@marketo_rest.com"
     }
     """
-    And I have valid token access and expiry values
-
-    When I receive the access_token response string
-    And I save the valid access_token response data
-    Then I should have a cached version of the 'access_token'
-    And I should have stored the calculated 'access_token_expiry'
-
+    Then I have stored the access token: "88888888-4444-4444-4444-121212121212:ab"
+    And I have stored a valid token expiry timestamp

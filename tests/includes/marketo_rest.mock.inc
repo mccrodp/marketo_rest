@@ -77,23 +77,6 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
   }
 
   /**
-   * Return a Mock token.
-   *
-   * @return object
-   */
-  private function getMockToken() {
-    // Return a response object including 'data' property.
-    return (object) [
-      'data' => '{
-        "access_token":"88888888-4444-4444-4444-121212121212:ab",
-        "token_type":"bearer",
-        "expires_in":3599,
-        "scope":"john@example.com"
-        }',
-    ];
-  }
-
-  /**
    * Constructs the request to create the REST call to Marketo.
    *
    * @param $api
@@ -117,7 +100,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
 
     // Add the access token unless we are querying for access token.
     if ($api != MARKETO_REST_IDENTITY_API && $url != $this->identity) {
-      $params += array('access_token' => $this->access_token);
+      $params += array('access_token' => $this->getStoredAccessToken());
     }
 
     // Add the api endpoint to the url.
@@ -139,27 +122,89 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
         $url = $url . '?' . $this->buildQuery($params);
         break;
     }
-    return $this->restCall($url, $options);
+    return $this->restCall($url, $options, $api);
   }
 
   /**
-   * Make a REST request to the server.
+   * Make a mock REST request to the server.
    *
    * @param $url
    * @param $options
+   * @param $api
+   *   Add the api in for testing.
    * @return object
    */
-  private function restCall($url, $options) {
+  private function restCall($url, $options, $api = null) {
     // Record the latest request.
     $this->setLastRequest(drupal_json_encode(
       array(
         'url' => $url,
         'options' => $options
-      )));
-    // @todo: comment out and replace response with getMockToken() or getMockData().
-    $response = drupal_http_request($url, $options);
+      )
+    ));
+
+    // For identity request get a mock token.
+    if ($api == MARKETO_REST_IDENTITY_API) {
+      $response = $this->getMockToken();
+    }
+    else {
+      // Get mock data from rest endpoint for all other requests.
+      $response = $this->getMockData($url, $options, $api);
+    }
     // Record the latest response.
     $this->setLastResponse(drupal_json_encode($response));
+    return $response;
+  }
+
+  /**
+   * Return a Mock token.
+   *
+   * @return object
+   */
+  private function getMockToken() {
+    // Return a response object including 'data' property.
+    return (object) [
+      'data' => '{
+        "access_token":"88888888-4444-4444-4444-121212121212:ab",
+        "token_type":"bearer",
+        "expires_in":3599,
+        "scope":"john@marketo_rest.com"
+        }',
+    ];
+  }
+
+  /**
+   * Get mock data.
+   *
+   * @param $url
+   * @param $options
+   * @param $api
+   * @return object
+   */
+  private function getMockData($url, $options, $api) {
+    // Set up the response object.
+    $response = (object) [
+      'request' => $options['data'],
+      'code' => 200,
+      'protocol' => 'HTTP/1.1',
+      'status_message' => '',
+      'redirect_code' => '',
+      'redirect_url' => '',
+      //'error' => '', // Only set if error received.
+      'headers' => '',
+    ];
+    switch($api) {
+      case MARKETO_REST_LEADS_API :
+        $response->data = '';
+        break;
+      case MARKETO_REST_ACTIVITIES_API :
+        $response->data = '';
+        break;
+      default:
+        $response->data = '';
+        break;
+    }
+
     return $response;
   }
 

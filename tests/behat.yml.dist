@@ -16,6 +16,7 @@ default:
 
               marketo_rest_test_settings:
                 marketo_rest_mock: true
+                marketo_rest_munchkin_account_id: app-sjqe
                 marketo_rest_instance_host: app-sjqe.marketo.com
                 marketo_rest_endpoint: https://app-sjqe.mktorest.com/rest
                 marketo_rest_identity: https://app-sjqe.mktorest.com/identity

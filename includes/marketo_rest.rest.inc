@@ -297,19 +297,6 @@ class MarketoRestClient implements MarketoRestInterface {
   }
 
   /**
-   * Load access token values from array into properties.
-   *
-   * @param array $token
-   */
-  protected function loadStoredAccessToken(array $token) {
-    if (!empty($token['access_token']) && !empty($token['token_expiry'])) {
-      // Set new access token.
-      $this->access_token = $token['access_token'];
-      $this->access_token_expiry = $token['token_expiry'];
-    }
-  }
-
-  /**
    * Get the stored access token value.
    *
    * @return mixed
@@ -336,6 +323,69 @@ class MarketoRestClient implements MarketoRestInterface {
    */
   public function setLastResponse($response) {
     return $this->response = $response;
+  }
+
+  /**
+   * Get the options to send in access token request.
+   *
+   * @param array $options
+   * @return array
+   */
+  public function getIdentityTokenOptions(array $options = array()) {
+    // Query Marketo for token.
+    $rest_options = array(
+      'client_id' => $this->clientId,
+      'client_secret' => $this->clientSecret,
+      'grant_type' => 'client_credentials',
+    );
+
+    // Merge extra options if present.
+    if ($options) {
+      $rest_options = array_merge($rest_options, $options);
+    }
+
+    return $rest_options;
+  }
+
+  /**
+   * Get the stored access token expiry value.
+   *
+   * @return mixed
+   */
+  public function getStoredAccessTokenExpiry() {
+    return $this->access_token_expiry;
+  }
+
+  /**
+   * Generate a build query.
+   *
+   * @param $params
+   * @return string
+   */
+  public function buildQuery($params) {
+    return drupal_http_build_query($params);
+  }
+
+  /**
+   * Get identity endpoint as per Marketo docs.
+   *
+   * @return string
+   */
+  public function getIdentityEndpoint() {
+    return $this->identity;
+  }
+
+  /**
+   * Load access token values from array into properties.
+   *
+   * @param array $token
+   */
+  protected function loadStoredAccessToken(array $token) {
+    if (!empty($token['access_token']) && !empty($token['token_expiry'])) {
+      // Set new access token.
+      $this->access_token = $token['access_token'];
+      $this->access_token_expiry = $token['token_expiry'];
+    }
   }
 
   /**
@@ -466,46 +516,6 @@ class MarketoRestClient implements MarketoRestInterface {
   }
 
   /**
-   * Get the stored access token expiry value.
-   *
-   * @return mixed
-   */
-  public function getStoredAccessTokenExpiry() {
-    return $this->access_token_expiry;
-  }
-
-  /**
-   * Get the options to send in access token request.
-   *
-   * @param array $options
-   * @return array
-   */
-  protected function getIdentityTokenOptions(array $options) {
-    // Query Marketo for token.
-    $rest_options = array(
-      'client_id' => $this->clientId,
-      'client_secret' => $this->clientSecret,
-      'grant_type' => 'client_credentials',
-    );
-
-    // Merge extra options if present.
-    if ($options) {
-      $rest_options = array_merge($rest_options, $options);
-    }
-
-    return $rest_options;
-  }
-
-  /**
-   * Get identity endpoint as per Marketo docs.
-   *
-   * @return string
-   */
-  protected function getIdentityEndpoint() {
-    return $this->identity;
-  }
-
-  /**
    * Get the full REST API Endpoint.
    *
    * Rest endpoint with API version.
@@ -514,16 +524,6 @@ class MarketoRestClient implements MarketoRestInterface {
    */
   protected function getFullRestEndpoint() {
     return $this->endpoint . '/' . MARKETO_REST_API_VERSION;
-  }
-
-  /**
-   * Generate a build query.
-   *
-   * @param $params
-   * @return string
-   */
-  protected function buildQuery($params) {
-    return drupal_http_build_query($params);
   }
 
   /**
