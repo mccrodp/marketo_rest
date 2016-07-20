@@ -12,7 +12,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
 
   /**
    * Constructor for MarketoClient class.
-   * 
+   *
    * @param string $client_id
    *   A Client ID defined in Marketo admin
    * @param string $client_secret
@@ -43,7 +43,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
    *   Full access token JSON.
    * @return bool
    */
-  public function getAccessToken(array $options = array(), array $token = null) {
+  public function getAccessToken(array $options = array(), array $token = NULL) {
 
     // Load the access token from the (JSON) full token.
     if ($token) {
@@ -56,6 +56,20 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
     }
 
     return $this->getStoredAccessToken();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFields() {
+    try {
+      $result = $this->request(MARKETO_REST_LEADS_DESCRIBE_API);
+      $fields = $this->prepareResults($result->data);
+    } catch (Exception $e) {
+      $fields = array();
+    }
+
+    return $fields;
   }
 
   /**
@@ -89,7 +103,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
    * @return object
    *   Response object
    */
-  private function request($api, $params = array(), $operation = 'GET', $url = null) {
+  private function request($api, $params = array(), $operation = 'GET', $url = NULL) {
 
     $options = array();
 
@@ -134,7 +148,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
    *   Add the api in for testing.
    * @return object
    */
-  private function restCall($url, $options, $api = null) {
+  private function restCall($url, $options, $api = NULL) {
     // Record the latest request.
     $this->setLastRequest(drupal_json_encode(
       array(
@@ -184,7 +198,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
   private function getMockData($url, $options, $api) {
     // Set up the response object.
     $response = (object) [
-      'request' => $options['data'],
+      'request' => (!empty($options['data'])) ? $options['data'] : array(),
       'code' => 200,
       'protocol' => 'HTTP/1.1',
       'status_message' => '',
@@ -193,12 +207,44 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
       //'error' => '', // Only set if error received.
       'headers' => '',
     ];
-    switch($api) {
+    switch ($api) {
       case MARKETO_REST_LEADS_API :
         $response->data = '';
         break;
       case MARKETO_REST_ACTIVITIES_API :
         $response->data = '';
+        break;
+      case MARKETO_REST_LEADS_DESCRIBE_API :
+        $response->data = '{
+          "result": [{
+            "id": 2,
+            "displayName": "Company Name",
+            "dataType": "string",
+            "length": 255,
+            "rest": {
+              "name": "company",
+              "readOnly": false
+            }
+          }, {
+            "id": 3,
+            "displayName": "Site",
+            "dataType": "string",
+            "length": 255,
+            "rest": {
+              "name": "site",
+              "readOnly": false
+            }
+          }, {
+            "id": 4,
+            "displayName": "Billing Address",
+            "dataType": "text",
+            "rest": {
+              "name": "billingStreet",
+              "readOnly": false
+            }
+          }],
+          "success": true
+        }';
         break;
       default:
         $response->data = '';

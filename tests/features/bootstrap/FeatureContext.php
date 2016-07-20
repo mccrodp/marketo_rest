@@ -11,6 +11,7 @@ use Behat\Behat\Context\SnippetAcceptingContext;
 use Behat\Gherkin\Node\PyStringNode;
 use Behat\Gherkin\Node\TableNode;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Coduo\PHPMatcher\Factory\SimpleFactory;
 
 class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext {
   private $params = array();
@@ -388,15 +389,14 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    */
   public function theResponseShouldContainJson(PyStringNode $string) {
     try {
-      $expected_value = json_decode($string->getRaw());
+      $expected_value = $string->getRaw();
       $response = json_decode($this->client->getLastResponse());
-      $response_data = json_decode($response->data);
-      // Cycle through the expected JSON and check for match.
-      foreach ($expected_value as $key => $value) {
-        if ($response_data->{$key} != $value) {
-          $message = sprintf('JSON mismatch: "%s" value was not equal', $key);
-          throw new \Exception($message);
-        }
+      $factory = new SimpleFactory();
+      $matcher = $factory->createMatcher();
+      // Use the pattern matcher to verify JSON.
+      if(!$matcher->match($response->data, $expected_value)) {
+        $message = sprintf('JSON mismatch: ', $matcher->getError());
+        throw new \Exception($message);
       }
     }
     catch (Exception $e) {
@@ -434,6 +434,18 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
     }
     catch (Exception $e) {
       throw new Exception('Could not access token expiry.');
+    }
+  }
+
+  /**
+   * @Given I request all fields on the lead object
+   */
+  public function iRequestAllFieldsOnTheLeadObject() {
+    try {
+      $this->client->getFields();
+    }
+    catch (Exception $e) {
+      throw new Exception('Could not set token and expiry.');
     }
   }
 

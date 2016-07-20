@@ -11,7 +11,7 @@
 interface MarketoRestInterface {
 
   /**
-   * Retrieves list of defined fields.
+   * Retrieves all fields and the data type of a lead object.
    */
   public function getFields();
 
@@ -261,7 +261,7 @@ class MarketoRestClient implements MarketoRestInterface {
    */
   public function getFields() {
     try {
-      $result = $this->request('leads/describe.json');
+      $result = $this->request(MARKETO_REST_LEADS_DESCRIBE_API);
       $fields = $this->prepareResults($result->data);
     }
     catch (Exception $e) {
@@ -373,6 +373,24 @@ class MarketoRestClient implements MarketoRestInterface {
    */
   public function getIdentityEndpoint() {
     return $this->identity;
+  }
+
+  /**
+   * Access token setter.
+   *
+   * @param $access_token
+   */
+  public function setAccessToken($access_token) {
+    $this->access_token = $access_token;
+  }
+
+  /**
+   * Access token expiry setter.
+   *
+   * @param $calculateTokenExpiry
+   */
+  public function setAccessTokenExpiry($calculateTokenExpiry) {
+    $this->access_token_expiry = $calculateTokenExpiry;
   }
 
   /**
@@ -510,8 +528,8 @@ class MarketoRestClient implements MarketoRestInterface {
     $token = drupal_json_decode($data);
     if (!empty($token['access_token'])) {
       // Set new access token.
-      $this->access_token = $token['access_token'];
-      $this->access_token_expiry = $this->calculateTokenExpiry($token['expires_in']);
+      $this->setAccessToken($token['access_token']);
+      $this->setAccessTokenExpiry($this->calculateTokenExpiry($token['expires_in']));
     }
   }
 
