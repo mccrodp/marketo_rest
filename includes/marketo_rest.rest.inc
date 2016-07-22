@@ -43,7 +43,7 @@ interface MarketoRestInterface {
   public function getLeadActivity($ids, $token, $lead_ids = null, $list_id = null, $batch_size = 300);
 
   /**
-   * Inserts or updates a lead.
+   * Create new leads, or if the lead already exists update it.
    *
    * @param $input
    *   Array of lead records to create or update

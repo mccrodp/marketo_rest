@@ -25,6 +25,11 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   /** @var MarketoMockClient */
   private $client;
 
+  // Persist POST data, request and response.
+  private $data;
+  private $request;
+  private $response;
+
   /**
    * Keep track of fields so they can be cleaned up.
    *
@@ -378,6 +383,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
         $message = sprintf('URL: "%s" was not expected: "%s"', $request['url'], $expected_value);
         throw new \Exception($message);
       }
+      $this->response = $this->client->getLastResponse();
     }
     catch (Exception $e) {
       throw new Exception('Could not access previous request data.');
@@ -390,7 +396,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   public function theResponseShouldContainJson(PyStringNode $string) {
     try {
       $expected_value = $string->getRaw();
-      $response = json_decode($this->client->getLastResponse());
+      $response = json_decode($this->response);
       $factory = new SimpleFactory();
       $matcher = $factory->createMatcher();
       // Use the pattern matcher to verify JSON.
@@ -443,9 +449,77 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   public function iRequestAllFieldsOnTheLeadObject() {
     try {
       $this->client->getFields();
+      $this->response = $this->client->getLastResponse();
     }
     catch (Exception $e) {
       throw new Exception('Could not set token and expiry.');
+    }
+  }
+
+  /**
+   * @Then the response should have success :arg1 and element :arg2 containing json:
+   *
+   * @param $arg1
+   * @param $arg2
+   * @param \Behat\Gherkin\Node\PyStringNode $string
+   * @throws \Exception
+   */
+  public function theResponseShouldHaveSuccessAndContainJson($arg1, $arg2, PyStringNode $string) {
+    try {
+      $expected_value = $string->getRaw();
+
+      // Extract the elements we want to check.
+      $response = json_decode($this->response);
+      $data = json_decode($response->data);
+      $element = json_encode($data->{$arg2}[0]);
+      $success = $data->{'success'};
+
+      $factory = new SimpleFactory();
+      $matcher = $factory->createMatcher();
+      // Use the pattern matcher to verify JSON.
+      if($success == $arg1 && !$matcher->match($element, $expected_value)) {
+        $message = sprintf('JSON mismatch: ', $matcher->getError());
+        throw new \Exception($message);
+      }
+    }
+    catch (Exception $e) {
+      throw new Exception('Could not access previous request data. ' . $e->getMessage());
+    }
+  }
+
+  /**
+   * @Given /^I have the action \'([^\']*)\' and the lookupField: \'([^\']*)\'$/
+   */
+  public function iHaveTheActionAndTheLookupField($arg1, $arg2) {
+    $this->data = (object) ['action' => $arg1, 'lookupField' => $arg2];
+  }
+
+  /**
+   * @Given /^I have the input:$/
+   */
+  public function iHaveTheInput(TableNode $table) {
+    $this->data->input = $table;
+  }
+
+  /**
+   * @When /^I sync leads$/
+   */
+  public function iSyncLeads() {
+    try {
+      $this->response = $this->client->syncLead($this->data->input, $this->data->action, $this->data->lookupField);
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+  }
+
+  /**
+   * @Then /^the return value \'([^\']*)\' should be \'([^\']*)\'$/
+   */
+  public function theReturnValueShouldBe($arg1, $arg2) {
+    // Use the pattern matcher to verify JSON.
+    if(!$this->response[$arg1] == $arg2) {
+      throw new \Exception($this->response['result']);
     }
   }
 
