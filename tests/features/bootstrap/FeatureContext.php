@@ -469,8 +469,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
       $expected_value = $string->getRaw();
 
       // Extract the elements we want to check.
-      $response = json_decode($this->response);
-      $data = json_decode($response->data);
+      $data = json_decode($this->response);
       $element = json_encode($data->{$arg2}[0]);
       $success = $data->{'success'};
 
@@ -498,7 +497,18 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    * @Given /^I have the input:$/
    */
   public function iHaveTheInput(TableNode $table) {
-    $this->data->input = $table;
+    $rows = $table->getRows();
+    $header = array_shift($rows);
+    $input = array();
+
+    // Generate array of input objects.
+    foreach ($rows as $num => $row) {
+      $input[$num] = new stdClass();
+      foreach ($row as $key => $field) {
+        $input[$num]->{$header[$key]} = $field;
+      }
+    }
+    $this->data->input = $input;
   }
 
   /**

@@ -64,12 +64,43 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
   public function getFields() {
     try {
       $result = $this->request(MARKETO_REST_LEADS_DESCRIBE_API);
-      $fields = $this->prepareResults($result->data);
+      $fields = $this->prepareResults($result);
     } catch (Exception $e) {
       $fields = array();
     }
 
     return $fields;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function syncLead(array $input, $action = 'createOrUpdate', $field = null, $async = 'false', $partition = null) {
+    // Generate an array of leads.
+    $params = (object) [
+      'input' => $input,
+      'action' => $action,
+      'asyncProcessing' => $async
+    ];
+
+    if ($field) {
+      $params->lookupField = $field;
+    }
+
+    if ($partition) {
+      $params->partitionName = $partition;
+    }
+
+    try {
+      $response = $this->request(MARKETO_REST_LEADS_API, $params, 'POST');
+      $result = $this->prepareResults($response);
+      $ret['success'] = $result['success'];
+    }
+    catch (Exception $e) {
+      $ret['result'] = $e->getMessage();
+      $ret['success'] = FALSE;
+    }
+    return $ret;
   }
 
   /**
@@ -87,7 +118,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
     );
 
     // Extract response data into properties and return raw data json string.
-    $this->extractTokenDataFromResponse($response->data);
+    $this->extractTokenDataFromResponse($response);
   }
 
   /**
@@ -95,7 +126,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
    *
    * @param $api
    *   The API endpoint
-   * @param array $params
+   * @param $body
    *   Parameters to be sent with the request
    * @param string $operation
    *   The operation to execute
@@ -103,18 +134,11 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
    * @return object
    *   Response object
    */
-  private function request($api, $params = array(), $operation = 'GET', $url = NULL) {
-
-    $options = array();
+  private function request($api, $body = array(), $operation = 'GET', $url = NULL) {
 
     // Set our REST endpoint if empty.
     if (!$url) {
       $url = $this->getFullRestEndpoint();
-    }
-
-    // Add the access token unless we are querying for access token.
-    if ($api != MARKETO_REST_IDENTITY_API && $url != $this->identity) {
-      $params += array('access_token' => $this->getStoredAccessToken());
     }
 
     // Add the api endpoint to the url.
@@ -123,99 +147,92 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
     // Depending on operation we construct the REST call differently.
     switch ($operation) {
       case 'POST':
-        // Add the API endpoint uri to the URL.
-        $query = $this->buildQuery($params);
-        $options = array(
-          'method' => $operation,
-          'data' => $query,
-        );
+        // Add the access token
+        $url = $url . '?access_token=' . $this->getStoredAccessToken();
         break;
       case 'GET':
       default:
+        // Add the access token unless we are querying for access token.
+        if ($api != MARKETO_REST_IDENTITY_API && $url != $this->identity) {
+          $body += array('access_token' => $this->getStoredAccessToken());
+        }
+
         // GET requires query string rather than params in the body.
-        $url = $url . '?' . $this->buildQuery($params);
+        $url = $url . '?' . $this->buildQuery($body);
+        $body = null;
         break;
     }
-    return $this->restCall($url, $options, $api);
+    return $this->curlCall($url, $body, $operation, $api);
   }
 
   /**
-   * Make a mock REST request to the server.
+   * Make a mock cURL request to the server.
    *
    * @param $url
-   * @param $options
+   * @param $body
+   * @param $operation
    * @param $api
    *   Add the api in for testing.
    * @return object
    */
-  private function restCall($url, $options, $api = NULL) {
+  private function curlCall($url, $body = null, $operation = 'GET', $api = NULL) {
     // Record the latest request.
-    $this->setLastRequest(drupal_json_encode(
-      array(
+    $this->setLastRequest(
+      (object) [
         'url' => $url,
-        'options' => $options
-      )
-    ));
-
+        'body' => $body,
+        'operation' => $operation,
+      ]
+    );
     // For identity request get a mock token.
     if ($api == MARKETO_REST_IDENTITY_API) {
+      // @todo: add validation on request.
       $response = $this->getMockToken();
     }
     else {
+      // @todo: add validation on request.
       // Get mock data from rest endpoint for all other requests.
-      $response = $this->getMockData($url, $options, $api);
+      $response = $this->getMockData($url, $body, $api);
     }
     // Record the latest response.
-    $this->setLastResponse(drupal_json_encode($response));
+    $this->setLastResponse($response);
     return $response;
   }
 
   /**
    * Return a Mock token.
    *
-   * @return object
+   * @return string
    */
   private function getMockToken() {
     // Return a response object including 'data' property.
-    return (object) [
-      'data' => '{
+    return '{
         "access_token":"88888888-4444-4444-4444-121212121212:ab",
         "token_type":"bearer",
         "expires_in":3599,
         "scope":"john@marketo_rest.com"
-        }',
-    ];
+        }';
   }
 
   /**
    * Get mock data.
    *
    * @param $url
-   * @param $options
+   * @param $body
    * @param $api
-   * @return object
+   * @return string
    */
-  private function getMockData($url, $options, $api) {
-    // Set up the response object.
-    $response = (object) [
-      'request' => (!empty($options['data'])) ? $options['data'] : array(),
-      'code' => 200,
-      'protocol' => 'HTTP/1.1',
-      'status_message' => '',
-      'redirect_code' => '',
-      'redirect_url' => '',
-      //'error' => '', // Only set if error received.
-      'headers' => '',
-    ];
+  private function getMockData($url, $body, $api) {
+    // Return data depending on api endpoint.
     switch ($api) {
       case MARKETO_REST_LEADS_API :
-        $response->data = '';
+        $response = '{"requestId":"4cb2#1561d3f0bf7","result":[{"id":3368789,"status":"created"}],"success":true}';
         break;
       case MARKETO_REST_ACTIVITIES_API :
-        $response->data = '';
+        $response = '';
         break;
       case MARKETO_REST_LEADS_DESCRIBE_API :
-        $response->data = '{
+        $response = '{
           "result": [{
             "id": 2,
             "displayName": "Company Name",
@@ -247,7 +264,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
         }';
         break;
       default:
-        $response->data = '';
+        $response = '';
         break;
     }
 

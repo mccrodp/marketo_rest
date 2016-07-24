@@ -45,7 +45,7 @@ interface MarketoRestInterface {
   /**
    * Create new leads, or if the lead already exists update it.
    *
-   * @param $input
+   * @param array $input
    *   Array of lead records to create or update
    * @param string $action
    *   Request type: createOnly, updateOnly, createOrUpdate, createDuplicate
@@ -57,7 +57,7 @@ interface MarketoRestInterface {
    *   If instance has lead partitions set up, you need to specify partitionName
    * @return mixed
    */
-  public function syncLead($input, $action = 'createOrUpdate', $field = null, $async = FALSE, $partition = null);
+  public function syncLead(array $input, $action = 'createOrUpdate', $field = null, $async = FALSE, $partition = null);
 }
 
 /**
@@ -262,7 +262,7 @@ class MarketoRestClient implements MarketoRestInterface {
   public function getFields() {
     try {
       $result = $this->request(MARKETO_REST_LEADS_DESCRIBE_API);
-      $fields = $this->prepareResults($result->data);
+      $fields = $this->prepareResults($result);
     }
     catch (Exception $e) {
       $fields = array();
@@ -274,18 +274,24 @@ class MarketoRestClient implements MarketoRestInterface {
   /**
    * {@inheritdoc}
    */
-  public function syncLead($input, $action = 'createOrUpdate', $field = null, $async = FALSE, $partition = null) {
+  public function syncLead(array $input, $action = 'createOrUpdate', $field = null, $async = 'false', $partition = null) {
     // Generate an array of leads.
-    $params = array(
-      'input' => $this->leadRecord($input, $field),
+    $params = (object) [
+      'input' => $input,
       'action' => $action,
-      'lookupField' => $field,
-      'asyncProcessing' => $async,
-      'partitionName' => $partition,
-    );
+      'asyncProcessing' => $async
+    ];
+
+    if ($field) {
+      $params->lookupField = $field;
+    }
+
+    if ($partition) {
+      $params->partitionName = $partition;
+    }
 
     try {
-      $response = $this->request(MARKETO_REST_LEADS_API, $params);
+      $response = $this->request(MARKETO_REST_LEADS_API, $params, 'POST');
       $result = $this->prepareResults($response);
       $ret['success'] = $result['success'];
     }
@@ -308,10 +314,10 @@ class MarketoRestClient implements MarketoRestInterface {
   /**
    * Set the last REST request as JSON string.
    *
-   * @param $request
+   * @param stdClass $request
    * @return mixed
    */
-  public function setLastRequest($request) {
+  public function setLastRequest(stdClass $request) {
     return $this->request = $request;
   }
 
@@ -555,26 +561,6 @@ class MarketoRestClient implements MarketoRestInterface {
   }
 
   /**
-   * Make a REST request to the server.
-   *
-   * @param $url
-   * @param $options
-   * @return object
-   */
-  private function restCall($url, $options) {
-    // Record the latest request.
-    $this->request = drupal_json_encode(
-      array(
-        'url' => $url,
-        'options' => $options
-    ));
-    $response = drupal_http_request($url, $options);
-    // Record the latest response.
-    $this->response = drupal_json_encode($response);
-    return $response;
-  }
-
-  /**
    * Request a new access token.
    *
    * @param array $options
@@ -589,7 +575,7 @@ class MarketoRestClient implements MarketoRestInterface {
     );
 
     // Extract response data into properties and return raw data json string.
-    $this->extractTokenDataFromResponse($response->data);
+    $this->extractTokenDataFromResponse($response);
   }
 
   /**
@@ -597,7 +583,7 @@ class MarketoRestClient implements MarketoRestInterface {
    *
    * @param $api
    *   The API endpoint
-   * @param array $params
+   * @param array $body
    *   Parameters to be sent with the request
    * @param string $operation
    *   The operation to execute
@@ -605,18 +591,11 @@ class MarketoRestClient implements MarketoRestInterface {
    * @return object
    *   Response object
    */
-  private function request($api, $params = array(), $operation = 'GET', $url = null) {
-
-    $options = array();
+  private function request($api, $body = array(), $operation = 'GET', $url = null) {
 
     // Set our REST endpoint if empty.
     if (!$url) {
       $url = $this->getFullRestEndpoint();
-    }
-
-    // Add the access token unless we are querying for access token.
-    if ($api != MARKETO_REST_IDENTITY_API && $url != $this->identity) {
-      $params += array('access_token' => $this->access_token);
     }
 
     // Add the api endpoint to the url.
@@ -625,20 +604,57 @@ class MarketoRestClient implements MarketoRestInterface {
     // Depending on operation we construct the REST call differently.
     switch ($operation) {
       case 'POST':
-        // Add the API endpoint uri to the URL.
-        $query = $this->buildQuery($params);
-        $options = array(
-          'method' => $operation,
-          'data' => $query,
-        );
+        // Add the access token
+        $url = $url . '?access_token=' . $this->access_token;
+        $body = drupal_json_encode($body);
         break;
       case 'GET':
       default:
+        // Add the access token unless we are querying for access token.
+        if ($api != MARKETO_REST_IDENTITY_API && $url != $this->identity) {
+          $body += array('access_token' => $this->access_token);
+        }
         // GET requires query string rather than params in the body.
-        $url = $url . '?' . $this->buildQuery($params);
+        $url = $url . '?' . $this->buildQuery($body);
+        $body = null;
         break;
     }
-    return $this->restCall($url, $options);
+    return $this->curlCall($url, $body, $operation);
+  }
+
+  /**
+   * Make a cURL request.
+   *
+   * @param $url
+   * @param $body
+   * @param $operation
+   * @return mixed
+   */
+  private function curlCall($url, $body = null, $operation = 'GET') {
+    $ch = curl_init($url);
+    curl_setopt($ch,  CURLOPT_RETURNTRANSFER, 1);
+    if ($operation == 'POST') {
+      curl_setopt($ch, CURLOPT_HTTPHEADER, array('accept: application/json','Content-Type: application/json'));
+      curl_setopt($ch, CURLOPT_POST, 1);
+      if ($body) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+      }
+    }
+    curl_getinfo($ch);
+    // Record the latest request.
+    $this->setLastRequest(
+      (object) [
+        'url' => $url,
+        'body' => $body,
+        'operation' => $operation,
+      ]
+    );
+
+    $response = curl_exec($ch);
+    // Record the latest response.
+    $this->setLastResponse($response);
+
+    return $response;
   }
 
 }
