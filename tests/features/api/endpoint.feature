@@ -42,3 +42,16 @@ Feature: Marketo REST API endpoint features
     When I get leads
     Then I should have a lead with 'firstName' equal to 'Jason'
     And the return value 'success' should be 'true'
+
+  @api @paging_token
+  Scenario: Ensure we retrieve new paging token
+    When I request a paging token
+    Then I should have a result with 'token' equal to 'xyz'
+    And the return value 'success' should be 'true'
+
+  @api @lead_activities_get
+  Scenario: Ensure we retrieve new paging token
+    Given I have a valid paging token
+    When I request lead activities
+    Then I should have a result with 'activity' equal to 'xyz'
+    And the return value 'success' should be 'true'

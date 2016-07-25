@@ -84,6 +84,9 @@ class MarketoRestClient implements MarketoRestInterface {
   private $access_token;
   private $access_token_expiry;
 
+  // Temporary paging token.
+  private $paging_token;
+
   // Latest request and response.
   private $request;
   private $response;
@@ -191,23 +194,23 @@ class MarketoRestClient implements MarketoRestInterface {
       $operation = $method;
     }
 
-    $params = array(
+    $body = (object) [
       'filterType' => $type,
       'filterValues' => is_array($values) ? implode(',', $values) : $values,
       'batchSize' => $batch,
       '_method' => $method
-    );
+    ];
 
     if (!empty($fields)) {
-      $params['fields'] = $fields;
+      $body->fields = $fields;
     }
 
     if (!empty($token)) {
-      $params['nextPageToken'] = $token; // @todo: add assoc functionality.
+      $body->nextPageToken = $token; // @todo: add assoc functionality.
     }
 
     try {
-      $result = $this->request(MARKETO_REST_LEADS_API, $params, $operation);
+      $result = $this->request(MARKETO_REST_LEADS_API, $body, $operation);
       $leads = $this->prepareResults($result);
     }
     catch (Exception $e) {
@@ -221,22 +224,30 @@ class MarketoRestClient implements MarketoRestInterface {
    * {@inheritdoc}
    */
   public function getLeadActivity($ids, $token, $lead_ids = null, $list_id = null, $batch_size = 300) {
+
+    $body = (object) [
+      'activityTypeIds' => $ids,
+      'nextPageToken' => $this->getNextPagingToken(),
+      'batchSize' => $batch_size,
+    ];
+
+    if (!empty($list_id)) {
+      $body->listId = $list_id;
+    }
+
+    if (!empty($lead_ids)) {
+      $body->leadIds = $lead_ids;
+    }
+
     try {
-      $result = $this->request(MARKETO_REST_ACTIVITIES_API);
-      $activity = $this->prepareLeadActivityResults($result);
+      $result = $this->request(MARKETO_REST_ACTIVITIES_API, $body);
+      $activities = $this->prepareResults($result);
     }
     catch (Exception $e) {
-
-      if (isset($e->detail->serviceException->code) && $e->detail->serviceException->code == MarketoRestError::ERR_LEAD_NOT_FOUND) {
-        // No leads were found.
-        $activity = array();
-      }
-      else {
-        throw new Exception($e);
-      }
+      throw new Exception($e->getMessage());
     }
 
-    return $activity;
+    return $activities;
   }
 
   /**
@@ -383,6 +394,30 @@ class MarketoRestClient implements MarketoRestInterface {
   }
 
   /**
+   * Set paging token.
+   *
+   * Usually set from response.
+   *
+   * @param $token
+   */
+  protected function setNextPagingToken($token) {
+    $this->paging_token = $token;
+  }
+
+  /**
+   * Get paging token from memory or request new token.
+   *
+   * @return array
+   */
+  protected function getNextPagingToken() {
+    if (!$this->paging_token) {
+      $this->paging_token = $this->getNewPagingToken();
+    }
+
+    return $this->paging_token;
+  }
+
+  /**
    * Load access token values from array into properties.
    *
    * @param array $token
@@ -443,37 +478,6 @@ class MarketoRestClient implements MarketoRestInterface {
     }
 
     return $record;
-  }
-
-  /**
-   * Parses lead activity results into a more useful format.
-   * 
-   * @param object $marketo_result
-   *   REST response
-   * 
-   * @return array
-   *   An array of objects defining lead activity data
-   */
-  protected function prepareLeadActivityResults($marketo_result) {
-    if ($marketo_result->leadActivityList->returnCount > 1) {
-      $activity = $marketo_result->leadActivityList->activityRecordList->activityRecord;
-    }
-    elseif ($marketo_result->leadActivityList->returnCount == 1) {
-      $activity[] = $marketo_result->leadActivityList->activityRecordList->activityRecord;
-    }
-    else {
-      $activity = array();
-    }
-
-    foreach ($activity as &$event) {
-      $event->attributes = array();
-      foreach ($event->activityAttributes->attribute as $attribute) {
-        $event->attributes[$attribute->attrName] = $attribute->attrValue;
-      }
-      unset($event->activityAttributes);
-    }
-
-    return $activity;
   }
 
   /**
@@ -607,6 +611,25 @@ class MarketoRestClient implements MarketoRestInterface {
     $this->setLastResponse($response);
 
      return $response;
+  }
+
+  /**
+   * Get a new paging token.
+   *
+   * @return array
+   */
+  private function getNewPagingToken() {
+    $body = (object) ['sinceDatetime' => date(MARKETO_REST_DATE_FORMAT)];
+
+    try {
+      $result = $this->request(MARKETO_REST_PAGING_TOKEN_API, $body);
+      $token = $this->prepareResults($result);
+    }
+    catch (Exception $e) {
+      $token = array();
+    }
+
+    return $token;
   }
 
 }
