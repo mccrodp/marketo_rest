@@ -508,6 +508,10 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
         $input[$num]->{$header[$key]} = $field;
       }
     }
+    // Ensure our data object is created.
+    if (empty($this->data) || !is_object($this->data)) {
+      $this->data = new stdClass();
+    }
     $this->data->input = $input;
   }
 
@@ -527,9 +531,52 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    * @Then /^the return value \'([^\']*)\' should be \'([^\']*)\'$/
    */
   public function theReturnValueShouldBe($arg1, $arg2) {
-    // Use the pattern matcher to verify JSON.
-    if(!$this->response[$arg1] == $arg2) {
-      throw new \Exception($this->response['result']);
+    try {
+      // Use the pattern matcher to verify JSON.
+      if(!$this->response[$arg1] == $arg2) {
+        throw new \Exception($this->response['result']);
+      }
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+  }
+
+  /**
+   * @When /^I get leads$/
+   */
+  public function iGetLeads() {
+    try {
+      if (empty($this->data)) {
+        throw new Exception('No lead data found in request.');
+      }
+      $values = array();
+      foreach ($this->data->input as $value) {
+        $values[] = $value->filterValues;
+      }
+      $this->response = $this->client->getLead($values, $this->data->input[0]->filterType);
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+  }
+
+  /**
+   * @Then /^I should have a lead with \'([^\']*)\' equal to \'([^\']*)\'$/
+   */
+  public function iShouldHaveALeadWithEqualTo($arg1, $arg2) {
+    try {
+      // Check response for lead data.
+      if (!empty($this->response) && is_array($this->response['result'])) {
+        foreach ($this->response['result'] as $result) {
+          if ($result[$arg1] != $arg2) {
+            throw new Exception('Value for "' . $arg1 . '"" does not match "' . $arg2 . '".');
+          }
+        }
+      }
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
     }
   }
 

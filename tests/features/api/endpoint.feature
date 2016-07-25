@@ -33,3 +33,12 @@ Feature: Marketo REST API endpoint features
       |  test@marketo_rest.com  |   Jason   |    04828   |
     When I sync leads
     Then the return value 'success' should be 'true'
+
+  @api @lead_get
+  Scenario: Ensure we retrieve multiple leads for a given search criteria
+    Given I have the input:
+      |    filterType    |        filterValues       |
+      |      email       |   test@marketo_rest.com   |
+    When I get leads
+    Then I should have a lead with 'firstName' equal to 'Jason'
+    And the return value 'success' should be 'true'

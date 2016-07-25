@@ -19,11 +19,20 @@ interface MarketoRestInterface {
    * Retrieves lead information.
    * 
    * @param string $type
-   *   Filter (key) type, typically email address
+   *   Filter type: id, cookies, email, twitter / facebookId, custom field, etc.
    * @param string $values
-   *   Filter values
+   *   Comma separated list of filter values
+   * @param $fields
+   *   Comma separated list of field names to be returned in the response.
+   * @param string $batch
+   *   The number of lead records to be returned in a single call.
+   * @param string $token
+   *   Paging token used on large result sets. [Currently unused]
+   * @param string $method
+   *   Required when using the HTTP POST method
+   * @return mixed
    */
-  public function getLead($values, $type = null);
+  public function getLead($values, $type = 'email', $fields = null, $batch = '300', $token = null, $method = 'GET');
 
   /**
    * Retrieves activity information.
@@ -36,11 +45,11 @@ interface MarketoRestInterface {
    *   A comma-separated list of lead IDs.
    * @param string|null $list_id
    *   For leads with in this given list
-   * @param int $batch_size
-   *   Default and max = 300
+   * @param string $batch_size
+   *   Default and max = '300'
    * @return mixed
    */
-  public function getLeadActivity($ids, $token, $lead_ids = null, $list_id = null, $batch_size = 300);
+  public function getLeadActivity($ids, $token, $lead_ids = null, $list_id = null, $batch_size = '300');
 
   /**
    * Create new leads, or if the lead already exists update it.
@@ -154,37 +163,6 @@ class MarketoRestClient implements MarketoRestInterface {
   }
 
   /**
-   * Determines lead key type for a given key.
-   *
-   * @param string $key
-   *   The key to examine
-   *
-   * @return string
-   *   Lead key type
-   */
-  protected function keyType($key) {
-    // If the key is an array, just check the first item.
-    if (is_array($key)) {
-      $key = array_shift($key);
-    }
-
-    if (filter_var($key, FILTER_VALIDATE_EMAIL)) {
-      $type = 'EMAIL';
-    }
-    elseif (is_int($key) || (is_string($key) && ctype_digit($key))) {
-      $type = 'IDNUM';
-    }
-    elseif (filter_var($key, FILTER_VALIDATE_REGEXP, array('options' => array('regexp' => '/^id:.*&token:.*/')))) {
-      $type = 'COOKIE';
-    }
-    else {
-      $type = 'UNKNOWN';
-    }
-
-    return $type;
-  }
-
-  /**
    * Returns the last REST request as JSON string.
    * 
    * @return string
@@ -205,30 +183,35 @@ class MarketoRestClient implements MarketoRestInterface {
   /**
    * {@inheritdoc}
    */
-  public function getLead($values, $type = null) {
-    // If we have no filterType key, determine key.
-    if (!$type) {
-      $type = $this->keyType($values);
+  public function getLead($values, $type = 'email', $fields = null, $batch = '300', $token = null, $method = 'GET') {
+
+    $operation = 'GET';
+    // Set the operation to the method param.
+    if ($method != $operation) {
+      $operation = $method;
     }
 
     $params = array(
       'filterType' => $type,
       'filterValues' => is_array($values) ? implode(',', $values) : $values,
+      'batchSize' => $batch,
+      '_method' => $method
     );
 
+    if (!empty($fields)) {
+      $params['fields'] = $fields;
+    }
+
+    if (!empty($token)) {
+      $params['nextPageToken'] = $token; // @todo: add assoc functionality.
+    }
+
     try {
-      $result = $this->request(MARKETO_REST_LEADS_API, $params);
-      $leads = $this->prepareLeadResults($result);
+      $result = $this->request(MARKETO_REST_LEADS_API, $params, $operation);
+      $leads = $this->prepareResults($result);
     }
     catch (Exception $e) {
-
-      if (isset($e->detail->serviceException->code) && $e->detail->serviceException->code == MarketoRestError::ERR_LEAD_NOT_FOUND) {
-        // No leads were found.
-        $leads = array();
-      }
-      else {
-        throw new Exception($e);
-      }
+      throw new Exception($e->getMessage());
     }
 
     return $leads;
@@ -463,37 +446,6 @@ class MarketoRestClient implements MarketoRestInterface {
   }
 
   /**
-   * Parses lead results into a more useful format.
-   * 
-   * @param object $marketo_result
-   *   REST response
-   * 
-   * @return array
-   *   An array of objects defining lead data
-   */
-  protected function prepareLeadResults($marketo_result) {
-    if ($marketo_result->result->count == 1) {
-      $leads[] = $marketo_result->result->leadRecordList->leadRecord;
-    }
-    elseif ($marketo_result->result->count > 1) {
-      $leads = $marketo_result->result->leadRecordList->leadRecord;
-    }
-    else {
-      $leads = array();
-    }
-
-    foreach ($leads as &$lead) {
-      $lead->attributes = array();
-      foreach ($lead->leadAttributeList->attribute as $attribute) {
-        $lead->attributes[$attribute->attrName] = $attribute->attrValue;
-      }
-      unset($lead->leadAttributeList);
-    }
-
-    return $leads;
-  }
-
-  /**
    * Parses lead activity results into a more useful format.
    * 
    * @param object $marketo_result
@@ -654,7 +606,7 @@ class MarketoRestClient implements MarketoRestInterface {
     // Record the latest response.
     $this->setLastResponse($response);
 
-    return $response;
+     return $response;
   }
 
 }

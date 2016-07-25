@@ -104,6 +104,43 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function getLead($values, $type = 'email', $fields = null, $batch = '300', $token = null, $method = 'GET') {
+
+    $operation = 'GET';
+    // Set the operation to the method param.
+    if ($method != $operation) {
+      $operation = $method;
+    }
+
+    $params = array(
+      'filterType' => $type,
+      'filterValues' => is_array($values) ? implode(',', $values) : $values,
+      'batchSize' => $batch,
+      '_method' => $method
+    );
+
+    if (!empty($fields)) {
+      $params['fields'] = $fields;
+    }
+
+    if (!empty($token)) {
+      $params['nextPageToken'] = $token; // @todo: add assoc functionality.
+    }
+
+    try {
+      $result = $this->request(MARKETO_REST_LEADS_API, $params, $operation);
+      $leads = $this->prepareResults($result);
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+
+    return $leads;
+  }
+
+  /**
    * Mock a new access token.
    *
    * @param array $options
@@ -226,7 +263,14 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
     // Return data depending on api endpoint.
     switch ($api) {
       case MARKETO_REST_LEADS_API :
-        $response = '{"requestId":"4cb2#1561d3f0bf7","result":[{"id":3368789,"status":"created"}],"success":true}';
+        // Return lead data for GET request with empty body.
+        if (empty($body)) {
+          $response = '{"requestId":"e463#1562256e577","result":[{"id":3368789,"updatedAt":"2016-07-25T09:02:35Z","lastName":null,"email":"test@marketo_rest.com","createdAt":"2016-07-24T12:52:03Z","firstName":"Jason"}],"success":true}';
+        }
+        else {
+          // If we are sending a post request there will be a body.
+          $response = '{"requestId":"4cb2#1561d3f0bf7","result":[{"id":3368789,"status":"created"}],"success":true}';
+        }
         break;
       case MARKETO_REST_ACTIVITIES_API :
         $response = '';

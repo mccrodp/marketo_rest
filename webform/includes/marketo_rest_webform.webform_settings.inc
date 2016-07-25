@@ -189,7 +189,7 @@ function theme_marketo_rest_webform_fieldmap($vars) {
 }
 
 /**
- * Generate a list of all webforms avaliable on this site.
+ * Generate a list of all webforms available on this site.
  */
 function theme_marketo_rest_webform_list($vars) {
   $nodes = $vars['nodes'];

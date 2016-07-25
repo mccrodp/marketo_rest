@@ -103,7 +103,7 @@ function marketo_rest_user_form_marketo_rest_admin_settings_form_alter(&$form, &
   $user_fields = _marketo_rest_user_get_user_fields();
   $user_fields += field_info_instances('user', 'user');
   $fieldmap = variable_get('marketo_rest_user_fieldmap', array());
-  $default_options = array(RESTRKETO_REST_WEBFORM_COMPONENT_NONE => '- None -');
+  $default_options = array(MARKETO_REST_WEBFORM_COMPONENT_NONE => '- None -');
   $marketo_options = _marketo_rest_get_field_options();
   $options = array_merge($default_options, $marketo_options);
 
