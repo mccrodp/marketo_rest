@@ -38,12 +38,11 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
   /**
    * Get new REST access token.
    *
-   * @param array|null $options
    * @param array|null $token
    *   Full access token JSON.
    * @return bool
    */
-  public function getAccessToken(array $options = array(), array $token = NULL) {
+  public function getAccessToken(array $token = NULL) {
 
     // Load the access token from the (JSON) full token.
     if ($token) {
@@ -52,7 +51,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
 
     // Check if we have an access token or if token is valid.
     if (!$this->getStoredAccessToken() || $this->isAccessTokenExpired()) {
-      $this->getNewAccessToken($options);
+      $this->getNewAccessToken();
     }
 
     return $this->getStoredAccessToken();
@@ -143,13 +142,12 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
   /**
    * Mock a new access token.
    *
-   * @param array $options
    */
-  private function getNewAccessToken(array $options) {
+  private function getNewAccessToken() {
     // Send a GET request for the access token.
     $response = $this->request(
       MARKETO_REST_IDENTITY_API,
-      $this->getIdentityTokenOptions($options),
+      $this->getIdentityTokenOptions(),
       'GET',
       $this->getIdentityEndpoint()
     );
@@ -159,11 +157,24 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
   }
 
   /**
+   * Get paging token from memory or request new token.
+   *
+   * @return array
+   */
+  public function getPagingToken() {
+    if (!$this->paging_token) {
+      $this->paging_token = $this->getNewPagingToken();
+    }
+
+    return $this->paging_token;
+  }
+
+  /**
    * Constructs the request to create the REST call to Marketo.
    *
    * @param $api
    *   The API endpoint
-   * @param $body
+   * @param stdClass $body
    *   Parameters to be sent with the request
    * @param string $operation
    *   The operation to execute
@@ -171,7 +182,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
    * @return object
    *   Response object
    */
-  private function request($api, $body = array(), $operation = 'GET', $url = NULL) {
+  private function request($api, stdClass $body = null, $operation = 'GET', $url = NULL) {
 
     // Set our REST endpoint if empty.
     if (!$url) {
@@ -191,7 +202,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
       default:
         // Add the access token unless we are querying for access token.
         if ($api != MARKETO_REST_IDENTITY_API && $url != $this->identity) {
-          $body += array('access_token' => $this->getStoredAccessToken());
+          $body->access_token = $this->getStoredAccessToken();
         }
 
         // GET requires query string rather than params in the body.
@@ -307,12 +318,36 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
           "success": true
         }';
         break;
+      case MARKETO_REST_PAGING_TOKEN_API :
+        $response = '{"requestId":"5123#15627c1c3fd","success":true,"nextPageToken":"K5T3IN4MRMAIU74RKJPXW3VICTV22SGRR7EPHF4QQLFTVSQS3CTQ===="}';
+        break;
       default:
         $response = '';
         break;
     }
 
     return $response;
+  }
+
+  /**
+   * Get a new paging token.
+   *
+   * @return mixed
+   * @throws \Exception
+   */
+  private function getNewPagingToken() {
+    $body = (object) ['sinceDatetime' => date(MARKETO_REST_DATE_FORMAT)];
+
+    try {
+      $result = $this->request(MARKETO_REST_PAGING_TOKEN_API, $body);
+      $token = $this->prepareResults($result);
+      $this->setPagingToken($token['nextPageToken']);
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+
+    return $token['nextPageToken'];
   }
 
 }

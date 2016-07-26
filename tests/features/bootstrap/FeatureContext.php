@@ -580,4 +580,46 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
     }
   }
 
+  /**
+   * @When /^I request a paging token$/
+   */
+  public function iRequestAPagingToken() {
+    try {
+      $this->client->getPagingToken();
+      $this->response = (array) json_decode($this->client->getLastResponse());
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+  }
+
+  /**
+   * @Given /^I should have a page token equal to \'([^\']*)\'$/
+   */
+  public function iShouldHaveAPageTokenEqualTo($arg1) {
+    try {
+      $token = $this->client->getPagingToken();
+      if ($token != $arg1) {
+        throw new Exception('Token "' . $token . '" is not equal to expected token " ' . $arg1);
+      }
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+  }
+
+  /**
+   * @Given /^I have a valid paging token$/
+   */
+  public function iHaveAValidPagingToken() {
+    throw new PendingException();
+  }
+
+  /**
+   * @When /^I request lead activities$/
+   */
+  public function iRequestLeadActivities() {
+    throw new PendingException();
+  }
+
 }
