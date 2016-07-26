@@ -87,6 +87,9 @@ class MarketoRestClient implements MarketoRestInterface {
   // Temporary paging token.
   protected $paging_token;
 
+  // Activity types.
+  private $activity_types;
+
   // Latest request and response.
   private $request;
   private $response;
@@ -530,7 +533,7 @@ class MarketoRestClient implements MarketoRestInterface {
    *
    * @param $api
    *   The API endpoint
-   * @param array $body
+   * @param stdClass $body
    *   Parameters to be sent with the request
    * @param string $operation
    *   The operation to execute
@@ -559,6 +562,9 @@ class MarketoRestClient implements MarketoRestInterface {
       default:
         // Add the access token unless we are querying for access token.
         if ($api != MARKETO_REST_IDENTITY_API && $url != $this->identity) {
+          if (empty($body)) {
+            $body = new stdClass();
+          }
           $body->access_token = $this->access_token;
         }
         // GET requires query string rather than params in the body.
@@ -623,6 +629,38 @@ class MarketoRestClient implements MarketoRestInterface {
     }
 
     return $token['nextPageToken'];
+  }
+
+  /**
+   * Get meta data about activity types.
+   *
+   * @return array
+   * @throws \Exception
+   */
+  public function getActivityTypes() {
+    try {
+      $result = $this->request(MARKETO_REST_ACTIVITIES_TYPES_API);
+      $types = $this->prepareResults($result);
+      $this->setActivityTypes($types['result']);
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+
+    return $types;
+  }
+
+  /**
+   * Set the activity types.
+   *
+   * @param $types
+   */
+  private function setActivityTypes($types) {
+    if (!empty($types)) {
+      $this->activity_types = $types;
+      return TRUE;
+    }
+    return FALSE;
   }
 
 }

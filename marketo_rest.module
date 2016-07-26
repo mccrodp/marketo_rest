@@ -13,6 +13,7 @@ define('MARKETO_REST_IDENTITY_API', 'oauth/token');
 define('MARKETO_REST_LEADS_API', 'leads.json');
 define('MARKETO_REST_ACTIVITIES_API', 'activities.json');
 define('MARKETO_REST_LEADS_DESCRIBE_API', 'leads/describe.json');
+define('MARKETO_REST_ACTIVITIES_TYPES_API', 'activities/types.json');
 define('MARKETO_REST_PAGING_TOKEN_API', 'activities/pagingtoken.json');
 
 define('MARKETO_REST_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");

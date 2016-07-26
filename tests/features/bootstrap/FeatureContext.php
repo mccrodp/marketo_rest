@@ -622,4 +622,17 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
     throw new PendingException();
   }
 
+  /**
+   * @When /^I request activity types$/
+   */
+  public function iRequestActivityTypes() {
+    try {
+      $this->client->getActivityTypes();
+      $this->response = (array) json_decode($this->client->getLastResponse());
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+  }
+
 }

@@ -202,6 +202,9 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
       default:
         // Add the access token unless we are querying for access token.
         if ($api != MARKETO_REST_IDENTITY_API && $url != $this->identity) {
+          if (empty($body)) {
+            $body = new stdClass();
+          }
           $body->access_token = $this->getStoredAccessToken();
         }
 
