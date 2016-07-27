@@ -17,7 +17,7 @@ interface MarketoRestInterface {
 
   /**
    * Retrieves lead information.
-   * 
+   *
    * @param string $type
    *   Filter type: id, cookies, email, twitter / facebookId, custom field, etc.
    * @param string $values
@@ -32,7 +32,7 @@ interface MarketoRestInterface {
    *   Required when using the HTTP POST method
    * @return mixed
    */
-  public function getLead($values, $type = 'email', $fields = null, $batch = '300', $token = null, $method = 'GET');
+  public function getLead($values, $type = 'email', $fields = NULL, $batch = '300', $token = NULL, $method = 'GET');
 
   /**
    * Retrieves activity information.
@@ -49,7 +49,7 @@ interface MarketoRestInterface {
    *   Default and max = '300'
    * @return mixed
    */
-  public function getLeadActivity($ids, $token, $lead_ids = null, $list_id = null, $batch_size = '300');
+  public function getLeadActivity($ids, $token, $lead_ids = NULL, $list_id = NULL, $batch_size = '300');
 
   /**
    * Create new leads, or if the lead already exists update it.
@@ -66,7 +66,7 @@ interface MarketoRestInterface {
    *   If instance has lead partitions set up, you need to specify partitionName
    * @return mixed
    */
-  public function syncLead(array $input, $action = 'createOrUpdate', $field = null, $async = FALSE, $partition = null);
+  public function syncLead(array $input, $action = 'createOrUpdate', $field = NULL, $async = FALSE, $partition = NULL);
 }
 
 /**
@@ -96,7 +96,7 @@ class MarketoRestClient implements MarketoRestInterface {
 
   /**
    * Constructor for MarketoClient class.
-   * 
+   *
    * @param string $client_id
    *   A Client ID defined in Marketo admin
    * @param string $client_secret
@@ -128,7 +128,7 @@ class MarketoRestClient implements MarketoRestInterface {
    *   Full access token JSON.
    * @return bool
    */
-  public function getAccessToken(array $token = null) {
+  public function getAccessToken(array $token = NULL) {
 
     // Load the access token from the (JSON) full token.
     if ($token) {
@@ -169,7 +169,7 @@ class MarketoRestClient implements MarketoRestInterface {
 
   /**
    * Returns the last REST request as JSON string.
-   * 
+   *
    * @return string
    */
   public function getLastRequest() {
@@ -188,7 +188,7 @@ class MarketoRestClient implements MarketoRestInterface {
   /**
    * {@inheritdoc}
    */
-  public function getLead($values, $type = 'email', $fields = null, $batch = '300', $token = null, $method = 'GET') {
+  public function getLead($values, $type = 'email', $fields = NULL, $batch = '300', $token = NULL, $method = 'GET') {
 
     $operation = 'GET';
     // Set the operation to the method param.
@@ -214,22 +214,60 @@ class MarketoRestClient implements MarketoRestInterface {
     try {
       $result = $this->request(MARKETO_REST_LEADS_API, $body, $operation);
       $leads = $this->prepareResults($result);
-    }
-    catch (Exception $e) {
+    } catch (Exception $e) {
       throw new Exception($e->getMessage());
     }
 
-    return $leads;
+    return $leads['result'];
+  }
+
+  /**
+   * Get all lead activities.
+   *
+   * @param $values
+   * @param string $type
+   * @param int $batch_size
+   * @return array
+   */
+  public function getAllLeadActivities($values, $type = 'email', $batch_size = 10) {
+    $activity_ids = $this->getActivityDataByField($this->getActivityTypes());
+
+    // Check we have more than 1 batch.
+    if (count($activity_ids) > $batch_size) {
+      // Separate into batches of $batch_size.
+      $batches = array_chunk($activity_ids, $batch_size);
+    }
+    else {
+      // We have only 1 batch.
+      $batches = array($activity_ids);
+    }
+
+    $lead_activity = array();
+    $lead_ids = implode(',', $this->getLeadIds($values, $type));
+
+    // Cycle through each activity batch and merge lead activities.
+    foreach ($batches as $batch) {
+      $batch_activity = $this->getLeadActivity(
+        implode(',', $batch),
+        $this->getPagingToken(),
+        $lead_ids
+      );
+      if (!empty($batch_activity) && is_array($batch_activity)) {
+        $lead_activity = array_merge($lead_activity, $batch_activity);
+      }
+    }
+
+    return $lead_activity;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getLeadActivity($ids, $token, $lead_ids = null, $list_id = null, $batch_size = 300) {
+  public function getLeadActivity($ids, $token, $lead_ids = NULL, $list_id = NULL, $batch_size = 300) {
 
     $body = (object) [
       'activityTypeIds' => $ids,
-      'nextPageToken' => $this->getPagingToken(),
+      'nextPageToken' => $token,
       'batchSize' => $batch_size,
     ];
 
@@ -243,15 +281,19 @@ class MarketoRestClient implements MarketoRestInterface {
 
     try {
       $result = $this->request(MARKETO_REST_ACTIVITIES_API, $body);
-      // @todo: set paging token from response.
-      // $this->setPagingToken($result['token']);
       $activities = $this->prepareResults($result);
-    }
-    catch (Exception $e) {
+      // Set paging token from the response.
+      // @todo: should this be set only if $activities['moreResult'] == true ?
+      $this->setPagingToken($activities['nextPageToken']);
+      // If we have no items return false.
+      if (empty($activities['result'])) {
+        return FALSE;
+      }
+    } catch (Exception $e) {
       throw new Exception($e->getMessage());
     }
 
-    return $activities;
+    return $activities['result'];
   }
 
   /**
@@ -261,8 +303,7 @@ class MarketoRestClient implements MarketoRestInterface {
     try {
       $result = $this->request(MARKETO_REST_LEADS_DESCRIBE_API);
       $fields = $this->prepareResults($result);
-    }
-    catch (Exception $e) {
+    } catch (Exception $e) {
       $fields = array();
     }
 
@@ -272,7 +313,7 @@ class MarketoRestClient implements MarketoRestInterface {
   /**
    * {@inheritdoc}
    */
-  public function syncLead(array $input, $action = 'createOrUpdate', $field = null, $async = 'false', $partition = null) {
+  public function syncLead(array $input, $action = 'createOrUpdate', $field = NULL, $async = 'false', $partition = NULL) {
     // Generate an array of leads.
     $params = (object) [
       'input' => $input,
@@ -292,8 +333,7 @@ class MarketoRestClient implements MarketoRestInterface {
       $response = $this->request(MARKETO_REST_LEADS_API, $params, 'POST');
       $result = $this->prepareResults($response);
       $ret['success'] = $result['success'];
-    }
-    catch (Exception $e) {
+    } catch (Exception $e) {
       $ret['result'] = $e->getMessage();
       $ret['success'] = FALSE;
     }
@@ -392,7 +432,7 @@ class MarketoRestClient implements MarketoRestInterface {
   /**
    * Get paging token from memory or request new token.
    *
-   * @return array
+   * @return mixed
    */
   public function getPagingToken() {
     if (!$this->paging_token) {
@@ -426,12 +466,26 @@ class MarketoRestClient implements MarketoRestInterface {
         $types = $this->prepareResults($result);
         $this->activity_types = $types['result'];
       }
-    }
-    catch (Exception $e) {
+    } catch (Exception $e) {
       throw new Exception($e->getMessage());
     }
 
     return $this->activity_types;
+  }
+
+  /**
+   * Get activity fata by field name.
+   *
+   * @param array $types
+   * @param string $field_name
+   * @return array
+   */
+  protected function getActivityDataByField(array $types, $field_name = 'id') {
+    $activity_data = array();
+    foreach ($types as $type) {
+      $activity_data[$type['id']] = $type[$field_name];
+    }
+    return $activity_data;
   }
 
   /**
@@ -458,10 +512,10 @@ class MarketoRestClient implements MarketoRestInterface {
 
   /**
    * Converts response into a more useful structure.
-   * 
+   *
    * @param string $data
    *   LeadRecord object description
-   * 
+   *
    * @return array
    *   Key value pairs of fields
    */
@@ -471,12 +525,12 @@ class MarketoRestClient implements MarketoRestInterface {
 
   /**
    * Creates proper structure for submitting a lead.
-   * 
+   *
    * @param array $attributes
    *   Key value pairs to be associated withi this lead
    * @param string $key
    *   Lead Key
-   * 
+   *
    * @return \stdClass
    *   Lead Record
    */
@@ -547,6 +601,22 @@ class MarketoRestClient implements MarketoRestInterface {
   }
 
   /**
+   * Get lead ids.
+   *
+   * @param $values
+   * @param $type
+   * @return array|mixed
+   */
+  protected function getLeadIds($values, $type) {
+    $lead_ids = array();
+    // Cycle through the leads and create an array of lead ids.
+    foreach ($this->getLead($values, $type) as $lead) {
+      $lead_ids[$lead['id']] = $lead['id'];
+    }
+    return $lead_ids;
+  }
+
+  /**
    * Calculate and return token expiry time based on time from now in seconds.
    *
    * @param $expires_in
@@ -585,7 +655,7 @@ class MarketoRestClient implements MarketoRestInterface {
    * @return object
    *   Response object
    */
-  private function request($api, stdClass $body = null, $operation = 'GET', $url = null) {
+  private function request($api, stdClass $body = NULL, $operation = 'GET', $url = NULL) {
 
     // Set our REST endpoint if empty.
     if (!$url) {
@@ -613,7 +683,7 @@ class MarketoRestClient implements MarketoRestInterface {
         }
         // GET requires query string rather than params in the body.
         $url = $url . '?' . $this->buildQuery($body);
-        $body = null;
+        $body = NULL;
         break;
     }
     return $this->curlCall($url, $body, $operation);
@@ -627,11 +697,14 @@ class MarketoRestClient implements MarketoRestInterface {
    * @param $operation
    * @return mixed
    */
-  private function curlCall($url, $body = null, $operation = 'GET') {
+  private function curlCall($url, $body = NULL, $operation = 'GET') {
     $ch = curl_init($url);
-    curl_setopt($ch,  CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     if ($operation == 'POST') {
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array('accept: application/json','Content-Type: application/json'));
+      curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+        'accept: application/json',
+        'Content-Type: application/json'
+      ));
       curl_setopt($ch, CURLOPT_POST, 1);
       if ($body) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
@@ -651,7 +724,7 @@ class MarketoRestClient implements MarketoRestInterface {
     // Record the latest response.
     $this->setLastResponse($response);
 
-     return $response;
+    return $response;
   }
 
   /**
@@ -667,8 +740,7 @@ class MarketoRestClient implements MarketoRestInterface {
       $result = $this->request(MARKETO_REST_PAGING_TOKEN_API, $body);
       $token = $this->prepareResults($result);
       $this->setPagingToken($token['nextPageToken']);
-    }
-    catch (Exception $e) {
+    } catch (Exception $e) {
       throw new Exception($e->getMessage());
     }
 

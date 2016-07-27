@@ -136,7 +136,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
       throw new Exception($e->getMessage());
     }
 
-    return $leads;
+    return $leads['result'];
   }
 
   /**
@@ -159,7 +159,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
   /**
    * Get paging token from memory or request new token.
    *
-   * @return array
+   * @return mixed
    */
   public function getPagingToken() {
     if (!$this->paging_token) {
@@ -189,6 +189,81 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
     }
 
     return $this->getStoredActivityTypes();
+  }
+
+  /**
+   * Get all lead activities.
+   *
+   * @param $values
+   * @param string $type
+   * @param int $batch_size
+   * @return array
+   */
+  public function getAllLeadActivities($values, $type = 'email', $batch_size = 10) {
+    $activity_ids = $this->getActivityDataByField($this->getActivityTypes());
+
+    // Check we have more than 1 batch.
+    if (count($activity_ids) > $batch_size) {
+      // Separate into batches of $batch_size.
+      $batches = array_chunk($activity_ids, $batch_size);
+    }
+    else {
+      // We have only 1 batch.
+      $batches = array($activity_ids);
+    }
+
+    $lead_activity = array();
+    $lead_ids = implode(',', $this->getLeadIds($values, $type));
+
+    // Cycle through each activity batch and merge lead activities.
+    foreach ($batches as $batch) {
+      $batch_activity = $this->getLeadActivity(
+        implode(',', $batch),
+        $this->getPagingToken(),
+        $lead_ids
+      );
+      if (!empty($batch_activity) && is_array($batch_activity)) {
+        $lead_activity = array_merge($lead_activity, $batch_activity);
+      }
+    }
+
+    return $lead_activity;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getLeadActivity($ids, $token, $lead_ids = NULL, $list_id = NULL, $batch_size = 300) {
+
+    $body = (object) [
+      'activityTypeIds' => $ids,
+      'nextPageToken' => $token,
+      'batchSize' => $batch_size,
+    ];
+
+    if (!empty($list_id)) {
+      $body->listId = $list_id;
+    }
+
+    if (!empty($lead_ids)) {
+      $body->leadIds = $lead_ids;
+    }
+
+    try {
+      $result = $this->request(MARKETO_REST_ACTIVITIES_API, $body);
+      $activities = $this->prepareResults($result);
+      // Set paging token from the response.
+      // @todo: should this be set only if $activities['moreResult'] == true ?
+      $this->setPagingToken($activities['nextPageToken']);
+      // If we have no items return false.
+      if (empty($activities['result'])) {
+        return FALSE;
+      }
+    } catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+
+    return $activities['result'];
   }
 
   /**
@@ -309,7 +384,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
         }
         break;
       case MARKETO_REST_ACTIVITIES_API :
-        $response = '';
+        $response = '{"requestId":"def3#1562cdef43e","success":true,"nextPageToken":"3PVDQWQ2XTJEGCWQB3THD6XYGS23BHHYNML2L43G564525NX5OVQ====","moreResult":false}';
         break;
       case MARKETO_REST_LEADS_DESCRIBE_API :
         $response = '{
@@ -362,7 +437,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
         $response = '{"requestId":"5123#15627c1c3fd","success":true,"nextPageToken":"K5T3IN4MRMAIU74RKJPXW3VICTV22SGRR7EPHF4QQLFTVSQS3CTQ===="}';
         break;
       default:
-        $response = '';
+        $response = 'MOCK_DATA_DEFAULT';
         break;
     }
 

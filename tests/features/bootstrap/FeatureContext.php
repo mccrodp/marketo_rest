@@ -567,8 +567,8 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   public function iShouldHaveALeadWithEqualTo($arg1, $arg2) {
     try {
       // Check response for lead data.
-      if (!empty($this->response) && is_array($this->response['result'])) {
-        foreach ($this->response['result'] as $result) {
+      if (!empty($this->response) && is_array($this->response)) {
+        foreach ($this->response as $result) {
           if ($result[$arg1] != $arg2) {
             throw new Exception('Value for "' . $arg1 . '"" does not match "' . $arg2 . '".');
           }
@@ -615,14 +615,14 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    * @Given /^I have a valid paging token$/
    */
   public function iHaveAValidPagingToken() {
-    throw new PendingException();
-  }
-
-  /**
-   * @When /^I request lead activities$/
-   */
-  public function iRequestLeadActivities() {
-    throw new PendingException();
+    try {
+      if(!$this->client->getPagingToken()) {
+        throw new Exception('Paging token not found.');
+      }
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
   }
 
   /**
@@ -640,13 +640,6 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * @When /^I request activities for a lead$/
-   */
-  public function iRequestActivitiesForALead() {
-    throw new PendingException();
-  }
-
-  /**
    * @Given /^I should have stored an array of activity types$/
    */
   public function iShouldHaveStoredAnArrayOfActivityTypes() {
@@ -656,6 +649,19 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
       if (!is_array($types) || empty($types[0]['id'])) {
         throw new Exception('Activity types were not stored in the expected format.');
       }
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+  }
+
+  /**
+   * @When /^I request all activities for a lead with field: \'([^\']*)\' equal to \'([^\']*)\'$/
+   */
+  public function iRequestAllActivitiesForALeadWithFieldEqualTo($arg1, $arg2) {
+    try {
+      $this->client->getAllLeadActivities($arg2, $arg1);
+      $this->response = (array) json_decode($this->client->getLastResponse());
     }
     catch (Exception $e) {
       throw new Exception($e->getMessage());

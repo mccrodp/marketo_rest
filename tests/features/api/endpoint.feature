@@ -63,5 +63,5 @@ Feature: Marketo REST API endpoint features
   Scenario: Ensure we retrieve activities for a lead
     Given I have a valid paging token
     And I have stored activity types
-    When I request activities for a lead
+    When I request all activities for a lead with field: 'email' equal to 'test@marketo_rest.com'
     Then the return value 'success' should be 'true'
