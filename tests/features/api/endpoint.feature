@@ -4,8 +4,8 @@ Feature: Marketo REST API endpoint features
   I need all of these tests to run successfully
 
   Background: Modules are clean and users are ready to test
-    Given all Marketo REST modules are clean and using "marketo_settings"
-    And I have instantiated the Marketo rest client using "marketo_settings"
+    Given all Marketo REST modules are clean and using "marketo_rest_test_settings"
+    And I have instantiated the Marketo rest client using "marketo_rest_test_settings"
     And I request an access token
 
   @api @lead_describe
@@ -19,6 +19,10 @@ Feature: Marketo REST API endpoint features
         "dataType":@string@,
         "length":@integer@,
         "rest": {
+          "name":@string@,
+          "readOnly":false
+        },
+        "soap": {
           "name":@string@,
           "readOnly":false
         }
@@ -47,15 +51,17 @@ Feature: Marketo REST API endpoint features
   Scenario: Ensure we retrieve meta data about activity types
     When I request activity types
     Then the return value 'success' should be 'true'
+    And I should have stored an array of activity types
 
   @api @paging_token
   Scenario: Ensure we retrieve new paging token
     When I request a paging token
     Then the return value 'success' should be 'true'
-    And I should have a page token equal to 'K5T3IN4MRMAIU74RKJPXW3VICTV22SGRR7EPHF4QQLFTVSQS3CTQ===='
+    And I should have a page token containing '===='
 
   @api @lead_activities_get
-  Scenario: Ensure we retrieve activities for the requested activity types
+  Scenario: Ensure we retrieve activities for a lead
     Given I have a valid paging token
-    When I request lead activities
+    And I have stored activity types
+    When I request activities for a lead
     Then the return value 'success' should be 'true'

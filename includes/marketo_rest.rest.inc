@@ -414,6 +414,36 @@ class MarketoRestClient implements MarketoRestInterface {
   }
 
   /**
+   * Get meta data about activity types.
+   *
+   * @return mixed
+   * @throws \Exception
+   */
+  public function getActivityTypes() {
+    try {
+      if (empty($this->activity_types)) {
+        $result = $this->request(MARKETO_REST_ACTIVITIES_TYPES_API);
+        $types = $this->prepareResults($result);
+        $this->activity_types = $types['result'];
+      }
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+
+    return $this->activity_types;
+  }
+
+  /**
+   * Get the stored activity types.
+   *
+   * @return mixed
+   */
+  protected function getStoredActivityTypes() {
+    return $this->activity_types;
+  }
+
+  /**
    * Load access token values from array into properties.
    *
    * @param array $token
@@ -500,6 +530,20 @@ class MarketoRestClient implements MarketoRestInterface {
    */
   protected function getFullRestEndpoint() {
     return $this->endpoint . '/' . MARKETO_REST_API_VERSION;
+  }
+
+  /**
+   * Set the activity types.
+   *
+   * @param $types
+   * @return bool
+   */
+  protected function setActivityTypes($types) {
+    if (!empty($types)) {
+      $this->activity_types = $types;
+      return TRUE;
+    }
+    return FALSE;
   }
 
   /**
@@ -629,38 +673,6 @@ class MarketoRestClient implements MarketoRestInterface {
     }
 
     return $token['nextPageToken'];
-  }
-
-  /**
-   * Get meta data about activity types.
-   *
-   * @return array
-   * @throws \Exception
-   */
-  public function getActivityTypes() {
-    try {
-      $result = $this->request(MARKETO_REST_ACTIVITIES_TYPES_API);
-      $types = $this->prepareResults($result);
-      $this->setActivityTypes($types['result']);
-    }
-    catch (Exception $e) {
-      throw new Exception($e->getMessage());
-    }
-
-    return $types;
-  }
-
-  /**
-   * Set the activity types.
-   *
-   * @param $types
-   */
-  private function setActivityTypes($types) {
-    if (!empty($types)) {
-      $this->activity_types = $types;
-      return TRUE;
-    }
-    return FALSE;
   }
 
 }

@@ -113,12 +113,12 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
       $operation = $method;
     }
 
-    $params = array(
+    $params = (object) [
       'filterType' => $type,
       'filterValues' => is_array($values) ? implode(',', $values) : $values,
       'batchSize' => $batch,
       '_method' => $method
-    );
+    ];
 
     if (!empty($fields)) {
       $params['fields'] = $fields;
@@ -167,6 +167,28 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
     }
 
     return $this->paging_token;
+  }
+
+  /**
+   * Get meta data about activity types.
+   *
+   * @param bool $stored
+   * @return mixed
+   * @throws \Exception
+   */
+  public function getActivityTypes($stored = TRUE) {
+    try {
+      if (!$stored || empty($this->getStoredActivityTypes())) {
+        $result = $this->request(MARKETO_REST_ACTIVITIES_TYPES_API);
+        $types = $this->prepareResults($result);
+        $this->setActivityTypes($types['result']);
+      }
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+
+    return $this->getStoredActivityTypes();
   }
 
   /**
@@ -299,6 +321,10 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
             "rest": {
               "name": "company",
               "readOnly": false
+            },
+            "soap": {
+              "name": "company",
+              "readOnly": false
             }
           }, {
             "id": 3,
@@ -306,6 +332,10 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
             "dataType": "string",
             "length": 255,
             "rest": {
+              "name": "site",
+              "readOnly": false
+            },
+            "soap": {
               "name": "site",
               "readOnly": false
             }
@@ -316,10 +346,17 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
             "rest": {
               "name": "billingStreet",
               "readOnly": false
+            },
+            "soap": {
+              "name": "billingStreet",
+              "readOnly": false
             }
           }],
           "success": true
         }';
+        break;
+      case MARKETO_REST_ACTIVITIES_TYPES_API :
+        $response = '{ "requestId": "eef6#1562be4d44c", "result": [{ "id": 1, "name": "Visit Webpage", "description": "User visits a web page", "primaryAttribute": { "name": "Webpage ID", "dataType": "integer" }, "attributes": [{ "name": "Client IP Address", "dataType": "string" }, { "name": "Query Parameters", "dataType": "string" }, { "name": "Referrer URL", "dataType": "string" }, { "name": "Search Engine", "dataType": "string" }, { "name": "Search Query", "dataType": "string" }, { "name": "User Agent", "dataType": "string" }, { "name": "Webpage URL", "dataType": "string" }] }, { "id": 2, "name": "Fill Out Form", "description": "User fills out and submits a form on web page", "primaryAttribute": { "name": "Webform ID", "dataType": "integer" }, "attributes": [{ "name": "Client IP Address", "dataType": "string" }, { "name": "Form Fields", "dataType": "text" }, { "name": "Query Parameters", "dataType": "string" }, { "name": "Referrer URL", "dataType": "string" }, { "name": "User Agent", "dataType": "string" }, { "name": "Webpage ID", "dataType": "integer" }] }], "success": true }';
         break;
       case MARKETO_REST_PAGING_TOKEN_API :
         $response = '{"requestId":"5123#15627c1c3fd","success":true,"nextPageToken":"K5T3IN4MRMAIU74RKJPXW3VICTV22SGRR7EPHF4QQLFTVSQS3CTQ===="}';

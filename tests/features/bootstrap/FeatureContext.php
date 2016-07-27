@@ -594,13 +594,16 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * @Given /^I should have a page token equal to \'([^\']*)\'$/
+   * @Given /^I should have a page token containing \'([^\']*)\'$/
    */
-  public function iShouldHaveAPageTokenEqualTo($arg1) {
+  public function iShouldHaveAPageTokenContaining($arg1) {
     try {
       $token = $this->client->getPagingToken();
-      if ($token != $arg1) {
-        throw new Exception('Token "' . $token . '" is not equal to expected token " ' . $arg1);
+      $factory = new SimpleFactory();
+      $matcher = $factory->createMatcher();
+      // Use the pattern matcher to verify token.
+      if(!$matcher->match($token, "@string@.contains('" . $arg1 . "')")) {
+        throw new Exception('Token "' . $token . '" does not contain expected "' . $arg1 . '"');
       }
     }
     catch (Exception $e) {
@@ -624,11 +627,35 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
 
   /**
    * @When /^I request activity types$/
+   * @Given /^I have stored activity types$/
    */
   public function iRequestActivityTypes() {
     try {
       $this->client->getActivityTypes();
       $this->response = (array) json_decode($this->client->getLastResponse());
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+  }
+
+  /**
+   * @When /^I request activities for a lead$/
+   */
+  public function iRequestActivitiesForALead() {
+    throw new PendingException();
+  }
+
+  /**
+   * @Given /^I should have stored an array of activity types$/
+   */
+  public function iShouldHaveStoredAnArrayOfActivityTypes() {
+    try {
+      $types = $this->client->getActivityTypes();
+      // Check we have a types array with min one entry with an id attribute.
+      if (!is_array($types) || empty($types[0]['id'])) {
+        throw new Exception('Activity types were not stored in the expected format.');
+      }
     }
     catch (Exception $e) {
       throw new Exception($e->getMessage());
