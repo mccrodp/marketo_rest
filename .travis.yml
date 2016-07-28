@@ -53,7 +53,7 @@ install:
   - export MODULE_DIR=$DOCROOT/sites/all/modules/$MODULE
   - sudo chmod -R 777 /var
   - drush dl drupal-7 --destination=/var --drupal-project-rename=www --yes
-  - drush si --db-url="mysql://$DB_USERNAME@127.0.0.1/$DATABASE" -r $DOCROOT --yes
+  - drush si --db-url="mysql://$DB_USERNAME@127.0.0.1/$DATABASE" -r $DOCROOT --yes --account-name=user --account-pass=pass
   - ln -s $TRAVIS_BUILD_DIR $MODULE_DIR
   - cd $TRAVIS_BUILD_DIR/..
 
@@ -74,7 +74,7 @@ before_script:
   # Mysql might time out for long tests, increase the wait timeout.
   - mysql -e 'SET @@GLOBAL.wait_timeout=1200'
 
-  # Settings from Marketo MA module.
+  # Settings copied from Marketo MA module.
   - cd $MODULE_DIR/tests
   - cp behat.yml.dist behat.yml
   - composer install
@@ -85,6 +85,6 @@ before_script:
   - until netstat -an 2>/dev/null | grep '8888.*LISTEN'; do true; done
 
 script:
-  # Settings from Marketo MA module.
+  # Settings copied from Marketo MA module.
   - cd $MODULE_DIR/tests
   - vendor/bin/behat --tags="~travis&&~live"
