@@ -18,7 +18,7 @@ define('MARKETO_REST_PAGING_TOKEN_API', 'activities/pagingtoken.json');
 
 define('MARKETO_REST_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");
 define('MARKETO_REST_TRACKING_METHOD_DEFAULT', 'munchkin');
-define('MARKETO_REST_WEBFORM_FIELD_DEFAULTS', "FirstName|First Name\nLastName|Last Name\nEmail|Email Address");
+define('MARKETO_REST_WEBFORM_FIELD_DEFAULTS', "firstName|First Name\nlastName|Last Name\nemail|Email Address");
 
 define('MARKETO_REST_SCHEMA_WEBFORM', 'marketo_rest_webform');
 define('MARKETO_REST_WEBFORM_FIELD_ACTIVE', 'is_active');

@@ -302,7 +302,7 @@ class MarketoRestClient implements MarketoRestInterface {
   public function getFields() {
     try {
       $result = $this->request(MARKETO_REST_LEADS_DESCRIBE_API);
-      $fields = $this->prepareResults($result);
+      $fields = $this->prepareFields($result);
     } catch (Exception $e) {
       $fields = array();
     }
@@ -745,6 +745,24 @@ class MarketoRestClient implements MarketoRestInterface {
     }
 
     return $token['nextPageToken'];
+  }
+
+  /**
+   * Prepare an array of fields and data type.
+   *
+   * @param $result
+   * @return array|bool
+   */
+  private function prepareFields($result) {
+    $result = $this->prepareResults($result);
+    if (!empty($result['result'])) {
+      $fields = array();
+      foreach ($result['result'] as $field) {
+        $fields[$field['rest']['name']] = $field;
+      }
+      return $fields;
+    }
+    return FALSE;
   }
 
 }
