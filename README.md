@@ -105,9 +105,9 @@ and [Export a List of All Marketo API Field Names](http://docs.marketo.com/displ
 This section should contain a pipe "|" delimited list of the fields in the format
 "[Field API Name]|[Friendly Label]". Example:
     
-    FirstName|First Name
-    LastName|Last Name
-    Email|Email Address
+    firstName|First Name
+    lastName|Last Name
+    email|Email Address
 
 ### <a id="page-visibility"></a> Page Visiblity
 

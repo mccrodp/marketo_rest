@@ -358,7 +358,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
         "access_token":"88888888-4444-4444-4444-121212121212:ab",
         "token_type":"bearer",
         "expires_in":3599,
-        "scope":"john@marketo_rest.com"
+        "scope":"john@marketo-rest.com"
         }';
   }
 
@@ -376,7 +376,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
       case MARKETO_REST_LEADS_API :
         // Return lead data for GET request with empty body.
         if (empty($body)) {
-          $response = '{"requestId":"e463#1562256e577","result":[{"id":3368789,"updatedAt":"2016-07-25T09:02:35Z","lastName":null,"email":"test@marketo_rest.com","createdAt":"2016-07-24T12:52:03Z","firstName":"Jason"}],"success":true}';
+          $response = '{"requestId":"e463#1562256e577","result":[{"id":3368789,"updatedAt":"2016-07-25T09:02:35Z","lastName":null,"email":"test@marketo-rest.com","createdAt":"2016-07-24T12:52:03Z","firstName":"Jason"}],"success":true}';
         }
         else {
           // If we are sending a post request there will be a body.

@@ -12,7 +12,7 @@ Feature: Marketo REST User features
       | user   | user   | field_lastname123  | text       | text_field  |
       | user   | user   | field_company123   | text       | text_field  |
     And users:
-      | name     | mail                     | field_firstname123 | field_lastname123 | field_company123 | pass     |
+      | name       | mail                         | field_firstname123 | field_lastname123 | field_company123   | pass     |
       | mresttest1 | mresttest1@mrest.example.com | Mma1               | Test1             | MREST Test Co.     | password |
       | mresttest2 | mresttest2@mrest.example.com | Mma2               | Test2             | MREST Test Co.     | password |
 
@@ -46,8 +46,8 @@ Feature: Marketo REST User features
     Given I am logged in as a user with the "administer marketo" permission
     When I go to "/admin/config/search/marketo_rest"
     And I click "User Integration"
-    And I select "FirstName" from "field_firstname123 (field_firstname123)"
-    And I select "LastName" from "field_lastname123 (field_lastname123)"
+    And I select "firstName" from "field_firstname123 (field_firstname123)"
+    And I select "lastName" from "field_lastname123 (field_lastname123)"
     And I press "Save configuration"
     Then I should see "The configuration options have been saved."
     And I go to "/user/logout"
@@ -57,7 +57,7 @@ Feature: Marketo REST User features
     And I enter "password" for "edit-pass"
     And I press "Log in"
     Then Munchkin associateLead action should send data
-      | field     | value                    |
-      | Email     | mresttest1@mrest.example.com |
-      | FirstName | Mma1                     |
-      | LastName  | Test1                    |
+      | field     | value                         |
+      | email     | mresttest1@mrest.example.com  |
+      | firstName | Mma1                          |
+      | lastName  | Test1                         |

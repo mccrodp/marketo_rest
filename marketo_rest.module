@@ -368,7 +368,7 @@ function _marketo_rest_associate_lead_rest($lead) {
  */
 function _marketo_rest_queue_lead($lead) {
   if (variable_get('marketo_rest_logging', FALSE)) {
-    watchdog('marketo', 'Queing lead !email [@method] <pre>@data</pre>', array(
+    watchdog('marketo', 'Queuing lead !email [@method] <pre>@data</pre>', array(
       '!email' => $lead['email'],
       '@method' => 'queued',
       '@data' => print_r($lead['data'], TRUE)), WATCHDOG_INFO);

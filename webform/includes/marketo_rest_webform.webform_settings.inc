@@ -142,6 +142,7 @@ function _marketo_rest_webform_save_webform($form, &$form_state) {
     ))
     ->execute();
 
+  // @todo: Field mapping happens here? Reuse for marketo_rest_webform.feature!
   if (isset($form_state['values']['components'])) {
     foreach ($form_state['values']['components'] as $cid => $marketo) {
       db_merge(MARKETO_REST_SCHEMA_WEBFORM_COMPONENT)

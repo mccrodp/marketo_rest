@@ -34,7 +34,7 @@ Feature: Marketo REST API endpoint features
     Given I have the action 'createOrUpdate' and the lookupField: 'email'
     And I have the input:
       |          email          | firstName | postalCode |
-      |  test@marketo_rest.com  |   Jason   |    04828   |
+      |  test@marketo-rest.com  |   Jason   |    04828   |
     When I sync leads
     Then the return value 'success' should be 'true'
 
@@ -42,7 +42,7 @@ Feature: Marketo REST API endpoint features
   Scenario: Ensure we retrieve multiple leads for a given search criteria
     Given I have the input:
       |    filterType    |        filterValues       |
-      |      email       |   test@marketo_rest.com   |
+      |      email       |   test@marketo-rest.com   |
     When I get leads
     Then I should have a lead with 'firstName' equal to 'Jason'
     And the return value 'success' should be 'true'
@@ -63,5 +63,5 @@ Feature: Marketo REST API endpoint features
   Scenario: Ensure we retrieve activities for a lead
     Given I have a valid paging token
     And I have stored activity types
-    When I request all activities for a lead with field: 'email' equal to 'test@marketo_rest.com'
+    When I request all activities for a lead with field: 'email' equal to 'test@marketo-rest.com'
     Then the return value 'success' should be 'true'

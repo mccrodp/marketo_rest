@@ -668,4 +668,28 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
     }
   }
 
+  /**
+   * @When /^I submit a webform node$/
+   */
+  public function iSubmitAWebformNode() {
+    try {
+      $this->createWebform();
+      // @todo: See _marketo_rest_webform_save_webform and add $this->data->input to form_state.
+      // @todo: programatically create webform submission.
+      $this->response = (array) json_decode($this->client->getLastResponse());
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+  }
+
+  /**
+   * Get a new webform node.
+   *
+   * @return \stdClass
+   */
+  private function createWebform() {
+    // @todo create webform node: https://www.drupal.org/node/2030697
+  }
+
 }

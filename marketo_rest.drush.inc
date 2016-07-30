@@ -213,7 +213,7 @@ function _marketo_rest_search_marketo_lead($key, $activity = FALSE) {
   $result = array();
   $marketo = marketo_rest_get_lead($key); // Can return multiple.
   foreach ($marketo as $lead) {
-    $account = user_load_by_mail($lead->Email); // Not sure about multiple.
+    $account = user_load_by_mail($lead->email); // Not sure about multiple.
     $result[$lead->Id] = array(
       'marketo' => $lead,
       'drupal' => $account,
