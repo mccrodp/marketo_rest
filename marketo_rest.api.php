@@ -16,8 +16,8 @@
  *   An associative array containing lead data
  *   - email: The email address of this lead
  *   - data: An associative array containing marketo fields and their values
- *     - FirstName
- *     - LastName
+ *     - firstName
+ *     - lastName
  *   - marketoCookie: NULL or the value of $_COOKIE['_mkto_trk']
  *
  * @see marketo_rest_add_lead()
@@ -32,8 +32,8 @@ function hook_marketo_rest_lead_alter(&$data) {
  * queue for submission.
  *
  * FIELDNAME equates to valid Marketo field names such as:
- * - FirstName
- * - LastName
+ * - firstName
+ * - lastName
  *
  * @param mixed $data
  *   The value of FIELDNAME

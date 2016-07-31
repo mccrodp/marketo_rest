@@ -300,7 +300,7 @@ function _marketo_rest_validate_rest_configuration($client_id, $client_secret, $
   $rest_token = variable_get('marketo_rest_token');
   try {
     $client = new MarketoRestClient($client_id, $client_secret, $endpoint, $identity);
-    _marketo_rest_persist_access_token($client->getAccessToken($proxy, $rest_token), $client->getAccessTokenExpiry());
+    _marketo_rest_persist_access_token($client->getAccessToken($rest_token), $client->getAccessTokenExpiry());
     $result = $client->getFields();
     if (!$result) {
       $result = FALSE;

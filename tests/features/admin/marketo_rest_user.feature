@@ -27,12 +27,12 @@ Feature: Marketo REST User features
     And I should see "field_lastname123 (field_lastname123)"
     And I should see "field_company123 (field_company123)"
     
-    When I select "LastName" from "[account:name] (name)"
-    And I select "LastName" from "field_company123 (field_company123)"
+    When I select "lastName" from "[account:name] (name)"
+    And I select "lastName" from "field_company123 (field_company123)"
     And I press "Save configuration"
     Then I should see "The configuration options have been saved."
-    And the "[account:name] (name)" field should contain "LastName"
-    And the "field_company123 (field_company123)" field should contain "LastName"
+    And the "[account:name] (name)" field should contain "lastName"
+    And the "field_company123 (field_company123)" field should contain "lastName"
 
     When I go to "/user"
     And I click "Edit"

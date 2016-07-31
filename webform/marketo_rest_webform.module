@@ -183,8 +183,8 @@ function _marketo_rest_webform_is_active($nid) {
  * @param int $nid
  *   Node ID
  * 
- * @return array
- *   Array of details otherwise NULL if webform is not configured
+ * @return stdClass
+ *   Detail object otherwise NULL if webform is not configured
  */
 function _marketo_rest_webform_details($nid) {
   $result = db_select(MARKETO_REST_SCHEMA_WEBFORM)
@@ -208,6 +208,8 @@ function _marketo_rest_webform_details($nid) {
  *   A themed table of webforms defined on the site
  */
 function marketo_rest_webform_list() {
+  $result = null;
+
   $webform_types = webform_variable_get('webform_node_types');
 
   if ($webform_types) {

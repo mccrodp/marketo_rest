@@ -542,7 +542,7 @@ class MarketoRestClient implements MarketoRestInterface {
         $record->Id = $key;
       }
       else {
-        $record->Email = $key;
+        $record->email = $key;
       }
     }
 
@@ -758,7 +758,9 @@ class MarketoRestClient implements MarketoRestInterface {
     if (!empty($result['result'])) {
       $fields = array();
       foreach ($result['result'] as $field) {
-        $fields[$field['rest']['name']] = $field;
+        if (!empty($field['rest']['name'])) {
+          $fields[$field['rest']['name']] = $field;
+        }
       }
       return $fields;
     }

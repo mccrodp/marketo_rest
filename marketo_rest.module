@@ -199,8 +199,8 @@ function _marketo_rest_output_tracking_code() {
  *   An associative array containing lead data
  *   - email: The email address of this lead
  *   - data: An associative array containing marketo fields and their values
- *     - FirstName
- *     - LastName
+ *     - firstName
+ *     - lastName
  *   - marketoCookie: NULL or the value of $_COOKIE['_mkto_trk']
  *   - options: Array of options to modify the behavior of lead synchronization
  *     - tracking_method: 'default' or a string indicating which method to use
@@ -309,8 +309,11 @@ function _marketo_rest_associate_lead_forms2($lead, $formid, $scheme = 'https', 
  *   Lead data
  * 
  * @throws Exception
+ * @return \MarketoRestClient
  */
 function _marketo_rest_associate_lead_rest($lead) {
+  $client = null;
+
   if (_marketo_rest_rest_is_configured()) {
     module_load_include('inc', 'marketo_rest', 'includes/marketo_rest.rest');
 
@@ -320,19 +323,13 @@ function _marketo_rest_associate_lead_rest($lead) {
     $rest_identity = variable_get('marketo_rest_identity');
     $rest_token = variable_get('marketo_rest_token');
 
-    if (array_key_exists('marketoCookie', $lead)) {
-      $mkto_trk = $lead['marketoCookie'];
-    }
-    else {
-      $mkto_trk = NULL;
-    }
-
     try {
       $rest_settings = _marketo_rest_rest_proxy_settings();
       $rest_settings['trace'] = variable_get('marketo_rest_logging', FALSE);
       $client = new MarketoRestClient($client_id, $client_secret, $rest_endpoint, $rest_identity);
-      _marketo_rest_persist_access_token($client->getAccessToken($rest_settings, $rest_token), $client->getAccessTokenExpiry());
-      $sync = $client->syncLead($lead['data'], $lead['email'], $mkto_trk, array('extendedResponse' => TRUE));
+      _marketo_rest_persist_access_token($client->getAccessToken($rest_token), $client->getAccessTokenExpiry());
+      $input = (object) $lead['data'];
+      $sync = $client->syncLead(array($input));
       if ($sync['success']) {
         if (variable_get('marketo_rest_logging', FALSE)) {
           watchdog('marketo', 'Associating lead !email [rest] <pre>@data @result</pre>', array(
@@ -355,6 +352,7 @@ function _marketo_rest_associate_lead_rest($lead) {
       watchdog('marketo', 'Unable to sync lead !email [rest] <pre>@error</pre>', array('!email' => $lead['email'], '@error' => $e->getMessage()), WATCHDOG_ERROR);
     }
   }
+  return $client;
 }
 
 /**
@@ -373,6 +371,7 @@ function _marketo_rest_queue_lead($lead) {
       '@method' => 'queued',
       '@data' => print_r($lead['data'], TRUE)), WATCHDOG_INFO);
   }
+  /* @var $queue SystemQueue */
   $queue = DrupalQueue::get('marketo_rest_lead', TRUE);
   $success = $queue->createItem($lead);
   return $success;
@@ -428,7 +427,7 @@ function _marketo_rest_get_fields() {
 
     try {
       $client = new MarketoRestClient($client_id, $client_secret, $rest_endpoint, $rest_identity);
-      _marketo_rest_persist_access_token($client->getAccessToken(_marketo_rest_rest_proxy_settings(), $rest_token), $client->getAccessTokenExpiry());
+      _marketo_rest_persist_access_token($client->getAccessToken($rest_token), $client->getAccessTokenExpiry());
       $result = $client->getFields();
       if (!$result) {
         watchdog('marketo', 'Unable to retrieve field information. Please check REST API configuration', WATCHDOG_ERROR);
@@ -461,7 +460,7 @@ function marketo_rest_get_lead($key) {
 
     try {
       $client = new MarketoRestClient($client_id, $client_secret, $rest_endpoint, $rest_identity);
-      _marketo_rest_persist_access_token($client->getAccessToken(_marketo_rest_rest_proxy_settings(), $rest_token), $client->getAccessTokenExpiry());
+      _marketo_rest_persist_access_token($client->getAccessToken($rest_token), $client->getAccessTokenExpiry());
       $result = $client->getLead($key);
       if (!$result && variable_get('marketo_rest_logging', FALSE)) {
         watchdog('marketo', 'Lead data not found for !key', array('!key' => $key), WATCHDOG_INFO);
@@ -494,8 +493,8 @@ function marketo_rest_get_lead_activity($key) {
 
     try {
       $client = new MarketoRestClient($client_id, $client_secret, $rest_endpoint, $rest_identity);
-      _marketo_rest_persist_access_token($client->getAccessToken(_marketo_rest_rest_proxy_settings(), $rest_token), $client->getAccessTokenExpiry());
-      $result = $client->getLeadActivity($key);
+      _marketo_rest_persist_access_token($client->getAccessToken($rest_token), $client->getAccessTokenExpiry());
+      $result = $client->getAllLeadActivities($key);
       if (!$result && variable_get('marketo_rest_logging', FALSE)) {
         watchdog('marketo', 'Lead data not found for !key', array('!key' => $key), WATCHDOG_INFO);
       }
@@ -658,6 +657,7 @@ function _marketo_rest_visibility_pages() {
 function _marketo_rest_visibility_roles($account) {
   static $role_match;
 
+  $enabled = null;
   // Cache visibility result if function is called more than once.
   if (!isset($role_match)) {
     $visibility = variable_get('marketo_rest_visibility_roles', 0);

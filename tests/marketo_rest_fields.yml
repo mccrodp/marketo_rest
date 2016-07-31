@@ -32,7 +32,7 @@ default:
           update: update
         marketo_rest_visibility_pages: '0'
         marketo_rest_visibility_roles: '1'
-        marketo_rest_webform_fields: "FirstName|First Name\r\nLastName|Last Name\r\nEmail|Email Address"
+        marketo_rest_webform_fields: "firstName|First Name\r\nlastName|Last Name\r\nemail|Email Address"
         marketo_rest_webform_fields_rest: 'Retrieve from Marketo'
         
       marketo_except_page_vis:

@@ -677,7 +677,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
 
     // Create the webform components.
     $components = array(
-      array(
+      1 => array(
         'name' => 'Email',
         'form_key' => 'marketo_rest_email',
         'type' => 'textfield',
@@ -690,7 +690,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
           'aslist' => 1,
         ),
       ),
-      array(
+      2 => array(
         'name' => 'Last name',
         'form_key' => 'marketo_rest_last_name',
         'type' => 'textfield',
@@ -702,7 +702,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
           'private' => 0,
         ),
       ),
-      array(
+      3 => array(
         'name' => 'First name',
         'form_key' => 'marketo_rest_first_name',
         'type' => 'textfield',
@@ -868,9 +868,31 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
       // Get webform submission data.
       $submission = $this->getWebformData($node, (array) array_shift($data));
       // Submit webform programmatically.
-      if (webform_submission_insert($node, $submission)) {
-        // Invoke hook manually?
-        // marketo_rest_webform_webform_submission_insert($node, $submission);
+      if (!webform_submission_insert($node, $submission)) {
+        throw new Exception('Could not create webform.');
+      }
+      global $user;
+      $marketo_rest_data = marketo_rest_get_queue();
+
+      if ((_marketo_rest_visibility_pages() && _marketo_rest_visibility_roles($user)) || count($marketo_rest_data) > 0) {
+
+        /*
+         * @todo handle case where visibility = false, count > 0, and
+         * tracking type != munchkin.. we don't need any tracking in this case
+         */
+        // Basic Munchkin tracking.
+        _marketo_rest_output_tracking_code();
+
+        foreach ($marketo_rest_data as $lead) {
+          if (array_key_exists('email', $lead)) {
+            $this->client = _marketo_rest_associate_lead_rest($lead);
+          }
+        }
+
+        _marketo_rest_cleanup();
+      }
+      if (!$response = $this->client->getLastResponse()) {
+        throw new Exception('No response could be set.');
       }
       $this->response = (array) json_decode($this->client->getLastResponse());
     }
@@ -906,6 +928,20 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
       'is_draft' => FALSE,
       'data' => $data,
     );
+  }
+
+  /**
+   * @Given /^I delete the test data$/
+   */
+  public function iDeleteTheTestData() {
+    try {
+      if (!empty($this->data->nid)) {
+        node_delete($this->data->nid);
+      }
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
   }
 
 }

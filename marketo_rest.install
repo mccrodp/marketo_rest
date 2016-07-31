@@ -43,6 +43,7 @@ function marketo_rest_uninstall() {
  * Implements hook_disable().
  */
 function marketo_rest_disable() {
+  /* @var $queue SystemQueue */
   $queue = DrupalQueue::get('marketo_rest_lead', TRUE);
   $queue->deleteQueue();
 }

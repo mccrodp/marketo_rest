@@ -142,7 +142,7 @@ function drush_marketo_rest_mrest_get_lead($key = NULL) {
         $rows[] = array(dt('Account'), 'mail', $find['drupal']->mail);
       }
       $rows[] = array(dt('Marketo'), 'Id', $find['marketo']->Id);
-      $rows[] = array(dt('Marketo'), 'Email', $find['marketo']->Email);
+      $rows[] = array(dt('Marketo'), 'Email', $find['marketo']->email);
       // Process Marketo attributes.
       foreach ($find['marketo']->attributes as $attr => $value) {
         $rows[] = array(dt('Marketo'), $attr, $value);
