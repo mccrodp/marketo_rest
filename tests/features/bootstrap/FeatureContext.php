@@ -497,22 +497,11 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    * @Given /^I have the input:$/
    */
   public function iHaveTheInput(TableNode $table) {
-    $rows = $table->getRows();
-    $header = array_shift($rows);
-    $input = array();
-
-    // Generate array of input objects.
-    foreach ($rows as $num => $row) {
-      $input[$num] = new stdClass();
-      foreach ($row as $key => $field) {
-        $input[$num]->{$header[$key]} = $field;
-      }
-    }
     // Ensure our data object is created.
     if (empty($this->data) || !is_object($this->data)) {
       $this->data = new stdClass();
     }
-    $this->data->input = $input;
+    $this->data->input = $this->getAssocDataArrayObjs($table->getRows());
   }
 
   /**
@@ -669,13 +658,220 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * @When /^I submit a webform node$/
+   * Get a new webform node.
+   *
+   * @return \stdClass
    */
-  public function iSubmitAWebformNode() {
+  private function createWebform() {
+    // Create webform node following: https://www.drupal.org/node/2030697.
+    $node = new stdClass();
+    $node->type = 'webform';
+    node_object_prepare($node);
+    $node->title = 'Marketo REST test Webform';
+    $node->language = 'en';
+    $node->body[LANGUAGE_NONE][0]['value']   = '';
+    $node->body[LANGUAGE_NONE][0]['format']  = 'full_html';
+    $node->uid = 1;
+    $node->promote = 0;
+    $node->comment = 0;
+
+    // Create the webform components.
+    $components = array(
+      array(
+        'name' => 'Email',
+        'form_key' => 'marketo_rest_email',
+        'type' => 'textfield',
+        'mandatory' => 1,
+        'weight' => 0,
+        'pid' => 0,
+        'extra' => array(
+          'title_display' => 'inline',
+          'private' => 0,
+          'aslist' => 1,
+        ),
+      ),
+      array(
+        'name' => 'Last name',
+        'form_key' => 'marketo_rest_last_name',
+        'type' => 'textfield',
+        'mandatory' => 1,
+        'weight' => 5,
+        'pid' => 0,
+        'extra' => array(
+          'title_display' => 'inline',
+          'private' => 0,
+        ),
+      ),
+      array(
+        'name' => 'First name',
+        'form_key' => 'marketo_rest_first_name',
+        'type' => 'textfield',
+        'mandatory' => 1,
+        'weight' => 10,
+        'pid' => 0,
+        'extra' => array(
+          'title_display' => 'inline',
+          'private' => 0,
+        ),
+      ),
+    );
+
+    // Setup notification email.
+    $emails = array(
+      array(
+        'email' => 'admin@marketo-rest.com',
+        'subject' => 'default',
+        'from_name' => 'default',
+        'from_address' => 'default',
+        'template' => 'default',
+        'excluded_components' => array(),
+      ),
+    );
+
+    // Attach the webform to the node.
+    $node->webform = array(
+      'confirmation' => '',
+      'confirmation_format' => NULL,
+      'redirect_url' => '',
+      'status' => '1',
+      'block' => '0',
+      'teaser' => '0',
+      'allow_draft' => '0',
+      'auto_save' => '0',
+      'submit_notice' => '1',
+      'submit_text' => '',
+      'submit_limit' => '-1', // User can submit more than once.
+      'submit_interval' => '-1',
+      'total_submit_limit' => '-1',
+      'total_submit_interval' => '-1',
+      'record_exists' => TRUE,
+      'roles' => array(
+        0 => '1', // Anonymous user can submit this webform.
+      ),
+      'emails' => $emails,
+      'components' => $components,
+    );
+
+    // Save the node.
+    node_save($node);
+
+    return $node;
+  }
+
+  /**
+   * Generate an assoc array from table rows.
+   *
+   * @param $rows
+   * @return array
+   */
+  private function getAssocDataArrayObjs($rows) {
+    $header = array_shift($rows);
+    $input = array();
+
+    // Generate array of input objects.
+    foreach ($rows as $num => $row) {
+      $input[$num] = new stdClass();
+      foreach ($row as $key => $field) {
+        $input[$num]->{$header[$key]} = $field;
+      }
+    }
+    return $input;
+  }
+
+  /**
+   * @Given /^I have created a webform node with the mapped fields:$/
+   */
+  public function iHaveCreatedAWebformNodeWithTheMappedFields(TableNode $table) {
     try {
-      $this->createWebform();
-      // @todo: See _marketo_rest_webform_save_webform and add $this->data->input to form_state.
-      // @todo: programatically create webform submission.
+      // Create a webform node representing our from.
+      $node = $this->createWebform();
+      $data = $this->getAssocDataArrayObjs($table->getRows());
+      // Map a component to a marketo field.
+      $this->mapMarketoFields($node, (array) array_shift($data));
+      $this->data = $node;
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+  }
+
+  /**
+   * Map the Marketo fields on the webform node.
+   *
+   * @param \stdClass $node
+   * @param array $mapped_fields
+   */
+  public function mapMarketoFields(stdClass $node, array $mapped_fields) {
+    $default_options = array(MARKETO_REST_WEBFORM_COMPONENT_NONE => '- None -');
+    $marketo_options = _marketo_rest_get_field_options();
+    $options = array_merge($default_options, $marketo_options);
+    $fieldmap = _marketo_rest_webform_get_mapped_fields($node->nid);
+    $form = array();
+
+    // Cycle through components and get / set field mapping.
+    foreach ($node->webform['components'] as $cid => $component) {
+      $form['components'][$cid] = array(
+        '#title' => filter_xss($component['name'] . ' (' . $component['form_key'] . ')'),
+        '#title_display' => 'invisible',
+        '#type' => 'select',
+        '#options' => $options,
+      );
+      if (array_key_exists($cid, $fieldmap)) {
+        if (!array_key_exists($fieldmap[$cid], $options)) {
+          $form['components'][$cid]['#options'] = array_merge(
+            array($fieldmap[$cid] => "Undefined Field ($fieldmap[$cid])"), $options
+          );
+        }
+        $form['components'][$cid]['#default_value'] = $fieldmap[$cid];
+      }
+      else {
+        // This is the likely case in test env; map our fields in order.
+        $form['components'][$cid]['#default_value'] = array_shift($mapped_fields);
+      }
+    }
+
+    db_merge(MARKETO_REST_SCHEMA_WEBFORM)
+      ->key(array('nid' => $node->nid))
+      ->fields(array(
+        MARKETO_REST_WEBFORM_FIELD_ACTIVE => TRUE,
+        MARKETO_REST_WEBFORM_OPTIONS => serialize($options),
+      ))
+      ->execute();
+
+    // Set the component id to map to Marketo field name.
+    foreach ($form['components'] as $cid => $marketo) {
+      db_merge(MARKETO_REST_SCHEMA_WEBFORM_COMPONENT)
+        ->key(array(
+          'nid' => $node->nid,
+          'cid' => $cid,
+        ))
+        ->fields(array(
+          MARKETO_REST_WEBFORM_COMPONENT_KEY => $marketo['#default_value'],
+        ))
+        ->execute();
+    }
+
+    // Set "Capture Data" to active.
+    db_merge(MARKETO_REST_SCHEMA_WEBFORM)
+      ->key(array('nid' => $node->nid))
+      ->fields(array('is_active' => 1))
+      ->execute();
+  }
+
+  /**
+   * @When /^I submit a webform node with the input:$/
+   */
+  public function iSubmitAWebformNodeWithTheInput(TableNode $table) {
+    try {
+      $node = $this->data;
+      $data = $this->getAssocDataArrayObjs($table->getRows());
+      // Get webform submission data.
+      $submission = $this->getWebformData($node, (array) array_shift($data));
+      // Submit webform programmatically.
+      if (webform_submission_insert($node, $submission)) {
+        // Invoke hook manually?
+        // marketo_rest_webform_webform_submission_insert($node, $submission);
+      }
       $this->response = (array) json_decode($this->client->getLastResponse());
     }
     catch (Exception $e) {
@@ -684,12 +880,32 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
   }
 
   /**
-   * Get a new webform node.
+   * Generate webform data based on mapped array data.
    *
-   * @return \stdClass
+   * @param $node
+   * @param $data
+   * @return object
    */
-  private function createWebform() {
-    // @todo create webform node: https://www.drupal.org/node/2030697
+  private function getWebformData($node, $data) {
+    global $user;
+
+    module_load_include('inc', 'webform', 'webform.module');
+    module_load_include('inc', 'webform', 'includes/webform.submissions');
+
+    // This methods will arrange $data in the right way
+    $data = _webform_client_form_submit_flatten($node, $data);
+    $data = webform_submission_data($node, $data);
+
+    return (object) array(
+      'nid' => $node->nid,
+      'uid' => $user->uid,
+      'sid' => NULL,
+      'submitted' => REQUEST_TIME,
+      'completed' => REQUEST_TIME,
+      'remote_addr' => ip_address(),
+      'is_draft' => FALSE,
+      'data' => $data,
+    );
   }
 
 }
