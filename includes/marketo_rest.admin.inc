@@ -154,6 +154,7 @@ function marketo_rest_admin_settings_form($form, &$form_state) {
   $form['marketo_rest_tabs']['marketo_rest_fields']['marketo_rest_webform_fields'] = array(
     '#type' => 'textarea',
     '#title' => t('Marketo fields'),
+    '#wysiwyg' => FALSE,
     '#description' => t('Pipe "|" delimited strings of [API Name]|[Friendly Label]. Enter one field per line. This information can be found in the Marketo admin page at Admin > Field Management > Export Field Names.<p>Once REST API settings have been configured, these fields can be automatically obtained from Marketo using the button below</p>'),
     '#rows' => 10,
     '#prefix' => '<div id="marketo-webform-fields-wrapper">',
@@ -202,6 +203,7 @@ function marketo_rest_admin_settings_form($form, &$form_state) {
   $form['marketo_rest_tabs']['marketo_rest_page_vis']['marketo_rest_pages'] = array(
     '#type' => 'textarea',
     '#title' => t('Pages'),
+    '#wysiwyg' => FALSE,
     '#title_display' => 'invisible',
     '#default_value' => variable_get('marketo_rest_pages', MARKETO_REST_PAGES),
     '#description' => t("Specify pages by using their paths. Enter one path per line. The '*' character is a wildcard. Example paths are %blog for the blog page and %blog-wildcard for every personal blog. %front is the front page.", array(
