@@ -1,5 +1,6 @@
-**Non functional development sandbox for the new marketo_rest module**
-* Help is welcomed; to test and report any issues in the issue queue, and also submit PRs :)
+**Development version of the new marketo_rest module**
+* Most of the functionality has now been ported, please see the issue queue. Help is welcomed; to test and report any 
+issues in the issue queue, and also submit PRs :)
 
 # Marketo REST
 
@@ -53,7 +54,7 @@ likely that you want to leave it set to the default.
 
 **Default Lead Source**
 If you would like all lead updates to include a default Lead Source you can
-set it here. If a LeadSource field is defined elsewhere in your lead data,
+set it here. If a leadSource field is defined elsewhere in your lead data,
 perhaps as a webform component, it will take precedence over this setting.
 
 **Verbose Logging**
@@ -85,6 +86,7 @@ Admin > Integration > REST API. Additional information can be found in the
 Marketo article [Configuring Your REST API Settings](http://developers.marketo.com/documentation/rest/).
 
 - REST endpoint
+- REST identity
 - Client ID
 - Client Secret
 
@@ -109,7 +111,7 @@ This section should contain a pipe "|" delimited list of the fields in the forma
     lastName|Last Name
     email|Email Address
 
-### <a id="page-visibility"></a> Page Visiblity
+### <a id="page-visibility"></a> Page Visibility
 
 Configure options for which pages should be tracked or excluded from tracking.
 

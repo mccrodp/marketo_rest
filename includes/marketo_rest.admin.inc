@@ -38,7 +38,7 @@ function marketo_rest_admin_settings_form($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => t('Default Lead Source'),
     '#default_value' => variable_get('marketo_rest_munchkin_lead_source'),
-    '#description' => t('If set, LeadSource will be set to this value unless specifically overridden during data collection.'),
+    '#description' => t('If set, leadSource will be set to this value unless specifically overridden during data collection.'),
   );
   $form['marketo_rest_basic']['marketo_rest_logging'] = array(
     '#type' => 'checkbox',

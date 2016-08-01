@@ -105,8 +105,8 @@ function marketo_rest_add_lead($email, $data = array(), $merge = FALSE, $options
 
   // Check to see if there is a default lead source we should apply.
   $source = variable_get('marketo_rest_munchkin_lead_source');
-  if (!array_key_exists('LeadSource', $marketo_rest_data[$email]['data']) && $source !== '') {
-    $marketo_rest_data[$email]['data']['LeadSource'] = $source;
+  if (!array_key_exists('leadSource', $marketo_rest_data[$email]['data']) && $source !== '') {
+    $marketo_rest_data[$email]['data']['leadSource'] = $source;
   }
 
   // If the user executing this method is anonymous or is actually the lead

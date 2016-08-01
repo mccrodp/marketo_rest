@@ -24,7 +24,7 @@
  */
 function hook_marketo_rest_lead_alter(&$data) {
   // Set or update the lead source for this lead.
-  $data['data']['LeadSource'] = 'Foo';
+  $data['data']['leadSource'] = 'Foo';
 }
 
 /**
