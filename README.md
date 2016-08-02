@@ -1,4 +1,4 @@
-**Development version of the new marketo_rest module**
+**Development version of the new [marketo_rest](https://www.drupal.org/project/marketo_rest) module**
 * Most of the functionality has now been ported, please see the issue queue. Help is welcomed; to test and report any 
 issues in the issue queue, and also submit PRs :)
 
