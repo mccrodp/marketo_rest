@@ -8,7 +8,7 @@
 /**
  * Implements hook_schema().
  */
-function marketo_rest_webform_schema() {
+function marketo_rest_schema() {
   $schema = array();
   $schema[MARKETO_REST_SCHEMA_LEAD_FIELDS] = array(
     'description' => 'Marketo Lead Field Details',
