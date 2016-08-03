@@ -6,6 +6,46 @@
  */
 
 /**
+ * Implements hook_schema().
+ */
+function marketo_rest_webform_schema() {
+  $schema = array();
+  $schema[MARKETO_REST_SCHEMA_LEAD_FIELDS] = array(
+    'description' => 'Marketo Lead Field Details',
+    'primary key' => array(MARKETO_REST_LEAD_FIELD_ID),
+    'unique keys' => array(MARKETO_REST_LEAD_FIELD_ID),
+    'fields' => array(
+      MARKETO_REST_LEAD_FIELD_ID => array(
+        'description' => 'The Marketo identifier of a field.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      MARKETO_REST_LEAD_FIELD_REST_KEY => array(
+        'description' => 'The Marketo lead field key for REST API.',
+        'type' => 'varchar',
+        'length' => 128,
+      ),
+      MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY => array(
+        'description' => 'The Marketo lead field key for Munchkin API.',
+        'type' => 'varchar',
+        'length' => 128,
+      ),
+      'enabled' => array(
+        'description' => 'Marketo field enabled or disabled.',
+        'type' => 'int',
+        'size' => 'small',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+  );
+  return $schema;
+}
+
+/**
  * Implements hook_uninstall().
  */
 function marketo_rest_uninstall() {
