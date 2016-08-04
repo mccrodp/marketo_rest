@@ -44,6 +44,25 @@ function marketo_rest_menu() {
     'access arguments' => array('administer marketo'),
     'file' => 'includes/marketo_rest.admin.inc',
   );
+
+  // Module settings.
+  $items['admin/config/search/marketo_rest/basic'] = array(
+    'title' => 'Marketo REST',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10
+  );
+
+  // Field definition form.
+  $items['admin/config/search/marketo_rest/field-definition'] = array(
+    'title' => 'Field Definition',
+    'description' => 'Marketo REST field definition',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('marketo_rest_field_definition_form'),
+    'access arguments' => array('administer marketo'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'includes/marketo_rest.admin.inc',
+  );
+
   return $items;
 }
 
