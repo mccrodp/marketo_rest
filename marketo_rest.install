@@ -9,11 +9,10 @@
  * Implements hook_schema().
  */
 function marketo_rest_schema() {
-  $schema = array();
   $schema[MARKETO_REST_SCHEMA_LEAD_FIELDS] = array(
-    'description' => 'Marketo Lead Field Details',
+    'description' => 'Marketo Lead Field Detail.',
     'primary key' => array(MARKETO_REST_LEAD_FIELD_ID),
-    'unique keys' => array(MARKETO_REST_LEAD_FIELD_ID),
+    'unique keys' => array(),
     'fields' => array(
       MARKETO_REST_LEAD_FIELD_ID => array(
         'description' => 'The Marketo identifier of a field.',
@@ -77,6 +76,14 @@ function marketo_rest_uninstall() {
   variable_del('marketo_rest_visibility_roles');
   variable_del('marketo_rest_webform_fields');
   variable_del('marketo_rest_webform_fields_rest');
+
+  /*
+   * This is required in order to pick up the constants defined in
+   * marketo_rest.module. This hook will execute before the attempt to remove
+   * the schema occurs and ensure that uninstall does not leave any orphaned
+   * tables. See https://api.drupal.org/comment/15344#comment-15344
+   */
+  drupal_load('module', 'marketo_rest');
 }
 
 /**
