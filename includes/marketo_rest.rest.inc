@@ -758,8 +758,8 @@ class MarketoRestClient implements MarketoRestInterface {
     if (!empty($result['result'])) {
       $fields = array();
       foreach ($result['result'] as $field) {
-        if (!empty($field['rest']['name'])) {
-          $fields[$field['rest']['name']] = $field;
+        if (!empty($field['id'])) {
+          $fields[$field['id']] = $field;
         }
       }
       return $fields;

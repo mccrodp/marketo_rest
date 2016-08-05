@@ -21,6 +21,11 @@ function marketo_rest_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'name' => array(
+        'description' => 'The Marketo lead field display name.',
+        'type' => 'varchar',
+        'length' => 128,
+      ),
       MARKETO_REST_LEAD_FIELD_REST_KEY => array(
         'description' => 'The Marketo lead field key for REST API.',
         'type' => 'varchar',
