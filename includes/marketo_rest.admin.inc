@@ -268,10 +268,17 @@ function marketo_rest_field_definition_form($form, &$form_state) {
     $field_options = _marketo_rest_merge_field_options($field_options, $marketo_fields);
   }
 
+  $field_values = array();
+
+  // When we have fields, get enabled / disabled values.
+  if (!empty($field_options)) {
+    $field_values = _marketo_rest_get_field_values();
+  }
+
   $form['marketo_rest_fields']['marketo_rest_lead_fields'] = array(
     '#type' => 'checkboxes',
     '#title' => t('Marketo Fields'),
-    '#default_value' => array(/*3=>'3', 2=>0*/),
+    '#default_value' => $field_values,
     '#options' => $field_options,
     '#prefix' => '<div id="marketo-lead-fields-wrapper">',
     '#suffix' => '</div>',

@@ -53,7 +53,7 @@ function marketo_rest_menu() {
   );
 
   // Field definition form.
-  $items['admin/config/search/marketo_rest/field-definition'] = array(
+  $items['admin/config/search/marketo_rest/field_definition'] = array(
     'title' => 'Field Definition',
     'description' => 'Marketo REST field definition',
     'page callback' => 'drupal_get_form',
@@ -412,10 +412,33 @@ function _marketo_rest_get_field_options($labels = TRUE, $sort = TRUE) {
 
   // Cycle through each field return the marketo field id => display name array.
   foreach ($fields as $id => $field) {
-    $options[$id] = $field['name'];
+    $options[$id] = $field->name;
   }
 
   return $options;
+}
+
+/**
+ * Returns defined field values as a marketo_id|value array.
+ *
+ * @return array
+ *   Key/value pairs of defined Marketo fields
+ */
+function _marketo_rest_get_field_values() {
+
+  $values = array();
+  $fields = _marketo_rest_get_field_definitions();
+
+  // Cycle through each field return the marketo field id => enabled array.
+  foreach ($fields as $id => $field) {
+    $value = 0;
+    if ($field->enabled) {
+      $value = $id;
+    }
+    $values[$id] = $value;
+  }
+
+  return $values;
 }
 
 /**
@@ -749,12 +772,16 @@ function _marketo_rest_sync_field_definitions(array $values, array $fields = nul
   // When we have marketo fields array, merge fields in db.
   if (!empty($fields) && is_array($fields)) {
     foreach ($fields as $id => $field) {
+      $display_name = $field['displayName'];
+      $rest_name = (!empty($field['rest']['name'])) ? $field['rest']['name'] : null;
+      $munchkin_name = (!empty($field['soap']['name'])) ? $field['soap']['name'] : null;
+
       db_merge(MARKETO_REST_SCHEMA_LEAD_FIELDS)
         ->key(array(MARKETO_REST_LEAD_FIELD_ID => $id))
         ->fields(array(
-          'name' => $field['displayName'],
-          MARKETO_REST_LEAD_FIELD_REST_KEY => $field['rest']['name'],
-          MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY => $field['soap']['name'],
+          'name' => $display_name,
+          MARKETO_REST_LEAD_FIELD_REST_KEY => $rest_name,
+          MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY => $munchkin_name,
           'enabled' => !empty($values[$id]) ? 1 : 0,
         ))
         ->execute();
@@ -762,11 +789,11 @@ function _marketo_rest_sync_field_definitions(array $values, array $fields = nul
   } else {
     // When we are updating existing fields in the db only.
     foreach ($values as $id => $value) {
-      db_merge(MARKETO_REST_SCHEMA_LEAD_FIELDS)
-        ->key(array(MARKETO_REST_LEAD_FIELD_ID => $id))
+      db_update(MARKETO_REST_SCHEMA_LEAD_FIELDS)
         ->fields(array(
           'enabled' => !empty($value) ? 1 : 0,
         ))
+        ->condition(MARKETO_REST_LEAD_FIELD_ID, $id)
         ->execute();
     }
   }
@@ -779,12 +806,14 @@ function _marketo_rest_sync_field_definitions(array $values, array $fields = nul
  */
 function _marketo_rest_get_field_definitions() {
   $data = array();
-  $result = db_select(MARKETO_REST_SCHEMA_LEAD_FIELDS)
+  $result = db_select(MARKETO_REST_SCHEMA_LEAD_FIELDS, 'f')
+    ->fields('f')
     ->execute()
     ->fetchAll();
   foreach ($result as $field) {
     $data[$field->{MARKETO_REST_LEAD_FIELD_ID}] = $field;
   }
+
   return $data;
 }
 
