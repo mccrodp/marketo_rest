@@ -277,8 +277,8 @@ function marketo_rest_field_definition_form($form, &$form_state) {
     '#header' => array(
       MARKETO_REST_LEAD_FIELD_ID => t('Marketo ID'),
       'name' => t('Display name'),
-      MARKETO_REST_LEAD_FIELD_REST_KEY => t('REST name'),
-      MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY => t('Munchkin name'),
+      MARKETO_REST_LEAD_FIELD_REST_KEY => t('REST key'),
+      MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY => t('Munchkin key'),
     ),
     '#options' => $field_options,
     '#default_value' => $field_values,
