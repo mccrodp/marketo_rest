@@ -405,10 +405,14 @@ function _marketo_rest_queue_lead($lead) {
  * @return array
  *   Key/value pairs of defined Marketo fields
  */
-function _marketo_rest_get_field_options($labels = TRUE, $sort = TRUE) {
+function _marketo_rest_get_field_options($fields = null) {
 
   $options = array();
-  $fields = _marketo_rest_get_field_definitions();
+
+  // Get field definitions if not passed as an arg.
+  if (!$fields) {
+    $fields = _marketo_rest_get_field_definitions();
+  }
 
   // Cycle through each field return the marketo field id => display name array.
   foreach ($fields as $id => $field) {
@@ -424,10 +428,13 @@ function _marketo_rest_get_field_options($labels = TRUE, $sort = TRUE) {
  * @return array
  *   Key/value pairs of defined Marketo fields
  */
-function _marketo_rest_get_field_values() {
+function _marketo_rest_get_field_tableselect_values($fields = null) {
 
   $values = array();
-  $fields = _marketo_rest_get_field_definitions();
+  // Get field definitions if not passed as an arg.
+  if (!$fields) {
+    $fields = _marketo_rest_get_field_definitions();
+  }
 
   // Cycle through each field return the marketo field id => enabled array.
   foreach ($fields as $id => $field) {
@@ -439,6 +446,35 @@ function _marketo_rest_get_field_values() {
   }
 
   return $values;
+}
+
+/**
+ * Returns defined fields as an associative for tableselect list options.
+ *
+ * @return array
+ *   Key/value pairs of defined Marketo fields
+ */
+function _marketo_rest_get_field_tableselect_options($fields = null) {
+
+  $options = array();
+
+  // Get field definitions if not passed as an arg.
+  if (!$fields) {
+    $fields = _marketo_rest_get_field_definitions();
+  }
+
+  // Cycle through each field returning the tableselect field values.
+  foreach ($fields as $id => $field) {
+    $options[$id] = array(
+      MARKETO_REST_LEAD_FIELD_ID => $id,
+      'name' => isset($field->name) ? $field->name : '',
+      MARKETO_REST_LEAD_FIELD_REST_KEY => isset($field->marketo_rest_key) ? $field->marketo_rest_key : '',
+      MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY => isset($field->marketo_munchkin_key) ? $field->marketo_munchkin_key : '',
+      'enabled' => $field->enabled,
+    );
+  }
+
+  return $options;
 }
 
 /**
@@ -772,18 +808,9 @@ function _marketo_rest_sync_field_definitions(array $values, array $fields = nul
   // When we have marketo fields array, merge fields in db.
   if (!empty($fields) && is_array($fields)) {
     foreach ($fields as $id => $field) {
-      $display_name = $field['displayName'];
-      $rest_name = (!empty($field['rest']['name'])) ? $field['rest']['name'] : null;
-      $munchkin_name = (!empty($field['soap']['name'])) ? $field['soap']['name'] : null;
-
       db_merge(MARKETO_REST_SCHEMA_LEAD_FIELDS)
         ->key(array(MARKETO_REST_LEAD_FIELD_ID => $id))
-        ->fields(array(
-          'name' => $display_name,
-          MARKETO_REST_LEAD_FIELD_REST_KEY => $rest_name,
-          MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY => $munchkin_name,
-          'enabled' => !empty($values[$id]) ? 1 : 0,
-        ))
+        ->fields($field)
         ->execute();
     }
   } else {
