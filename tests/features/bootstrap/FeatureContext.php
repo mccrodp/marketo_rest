@@ -944,4 +944,25 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
     }
   }
 
+  /**
+   * @Then /^I should see have field definition:$/
+   */
+  public function iShouldSeeHaveFieldDefinition(TableNode $table)
+  {
+    try {
+      $rows = $this->getAssocDataArrayObjs($table->getRows());
+      $field_definitions = _marketo_rest_get_field_definitions();
+      foreach ($rows as $fields) {
+        foreach ($fields as $key => $value) {
+          if ($field_definitions[$fields->marketo_id]->{$key} != $value) {
+            throw new Exception('Field definitions don\'t contain expected data.');
+          }
+        }
+      }
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+  }
+
 }

@@ -231,7 +231,7 @@ function _marketo_rest_user_display_lead($account) {
   return theme('marketo_rest_user_lead', array(
     'lead' => $leads,
     'email' => $account->mail,
-    'fields' => _marketo_rest_get_field_options(FALSE, FALSE),
+    'fields' => _marketo_rest_get_field_options(),
   ));
 }
 

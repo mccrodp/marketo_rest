@@ -34,15 +34,15 @@ Feature: Module configuration
   
   @config @field_definitions
   Scenario: Configure field definition settings
-    Given I populate the Marketo REST config using "marketo_settings"
+    Given all Marketo REST modules are clean and using "marketo_settings"
+    And I have instantiated the Marketo rest client using "marketo_settings"
     When I am logged in as an administrator
     And I go to "/admin/config/search/marketo_rest/field_definition"
     When I press "Retrieve from Marketo"
     Then I should see have field definition:
-      |    marketo_rest_key    |    marketo_munchkin_key      |    enabled      |
-      |    email               |        Email                 |      1          |
-      |    lastName            |        LastName              |      1          |
-      |    firstName           |        FirstName             |      1          |
+     | marketo_id |     name      |   marketo_rest_key    |    marketo_munchkin_key      |    enabled      |
+     |    2       | Company Name  |       company         |        Company               |      0          |
+     |    3       | Site          |       site            |        Site                  |      0          |
 
   @config @live
   Scenario: Configure live module settings

@@ -255,31 +255,33 @@ function marketo_rest_field_definition_form($form, &$form_state) {
     '#description' => t('Enable / disable the fields defined here for mapping to Webform and User Profile fields.'),
   );
 
-  $field_options = _marketo_rest_get_field_options();
+  $field_definitions = _marketo_rest_get_field_definitions();
+  $field_options = _marketo_rest_get_field_tableselect_options($field_definitions);
 
   if (isset($form_state['triggering_element']['#array_parents']) && in_array('marketo_rest_lead_fields_rest', $form_state['triggering_element']['#array_parents'])) {
-    $marketo_fields = array();
-    $fields = _marketo_rest_get_fields();
-    foreach ($fields as $id => $field) {
-      $marketo_fields[$id] = $field['displayName'];
-    }
+    $marketo_fields = _marketo_rest_get_fields();
     // Make field data accessible to callback.
-    $form['#marketo-fields'] = $fields;
-    $field_options = _marketo_rest_merge_field_options($field_options, $marketo_fields);
+    $form['#marketo-fields'] = $marketo_fields;
+    $field_options += $marketo_fields; // Only merge new array keys.
   }
 
   $field_values = array();
 
   // When we have fields, get enabled / disabled values.
   if (!empty($field_options)) {
-    $field_values = _marketo_rest_get_field_values();
+    $field_values = _marketo_rest_get_field_tableselect_values($field_definitions);
   }
 
   $form['marketo_rest_fields']['marketo_rest_lead_fields'] = array(
-    '#type' => 'checkboxes',
-    '#title' => t('Marketo Fields'),
-    '#default_value' => $field_values,
+    '#type' => 'tableselect',
+    '#header' => array(
+      MARKETO_REST_LEAD_FIELD_ID => t('Marketo ID'),
+      'name' => t('Display name'),
+      MARKETO_REST_LEAD_FIELD_REST_KEY => t('REST key'),
+      MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY => t('Munchkin key'),
+    ),
     '#options' => $field_options,
+    '#default_value' => $field_values,
     '#prefix' => '<div id="marketo-lead-fields-wrapper">',
     '#suffix' => '</div>',
   );
