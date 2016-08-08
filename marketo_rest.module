@@ -416,11 +416,13 @@ function _marketo_rest_queue_lead($lead) {
 
 /**
  * Returns defined fields as an associative array useful for select options.
- * 
+ *
+ * @param null $fields
+ * @param bool $sort
  * @return array
  *   Key/value pairs of defined Marketo fields
  */
-function _marketo_rest_get_field_options($fields = null) {
+function _marketo_rest_get_field_options($fields = null, $sort = TRUE) {
 
   $options = array();
 
@@ -432,6 +434,10 @@ function _marketo_rest_get_field_options($fields = null) {
   // Cycle through each field return the marketo field id => display name array.
   foreach ($fields as $id => $field) {
     $options[$id] = $field->name;
+  }
+
+  if ($sort) {
+    asort($options);
   }
 
   return $options;
