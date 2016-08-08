@@ -95,7 +95,7 @@ function marketo_rest_cron_queue_info() {
  * 
  * @param string $email
  *   A valid email address for this lead
- * @param array $data
+ * @param MarketoRestData $marketo_data
  *   Key value pairs of data to be associated with this lead
  * @param bool $merge
  *   If TRUE, $data will be merged if $email already exists else $data will
@@ -106,12 +106,13 @@ function marketo_rest_cron_queue_info() {
  * @return bool
  *   Returns TRUE upon completion
  */
-function marketo_rest_add_lead($email, $data = array(), $merge = FALSE, $options = array()) {
+function marketo_rest_add_lead($email, MarketoRestData $marketo_data, $merge = FALSE, $options = array()) {
   $options += array(
     'tracking_method' => 'default',
   );
 
   $marketo_rest_data = array();
+  $data = $marketo_data->getFormattedData();
   if (isset($_SESSION['marketo_rest_data'])) {
     $marketo_rest_data = $_SESSION['marketo_rest_data'];
   }
@@ -122,7 +123,7 @@ function marketo_rest_add_lead($email, $data = array(), $merge = FALSE, $options
   else {
     $marketo_rest_data[$email]['data'] = $data;
   }
-  $marketo_rest_data[$email]['email'] = $email;
+  $marketo_rest_data[$email][$marketo_data->getEmailKey($marketo_data->getTrackingMethod())] = $email;
   $marketo_rest_data[$email]['options'] = $options;
 
   // Check to see if there is a default lead source we should apply.
@@ -183,9 +184,11 @@ function marketo_rest_page_alter(&$page) {
      */
     // Basic Munchkin tracking.
     _marketo_rest_output_tracking_code();
+    $tracking_method = variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT);
+    $email_key = MarketoRestData::getEmailKey($tracking_method);
 
     foreach ($marketo_rest_data as $lead) {
-      if (array_key_exists('email', $lead)) {
+      if (array_key_exists($email_key, $lead)) {
         _marketo_rest_associate_lead($lead);
       }
     }
@@ -260,10 +263,12 @@ function _marketo_rest_associate_lead($lead) {
 function _marketo_rest_associate_lead_munchkin($lead) {
   if (_marketo_rest_munchkin_is_configured()) {
     $key = variable_get('marketo_rest_munchkin_api_private_key', NULL);
+    $tracking_method = variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT);
+    $email_key = MarketoRestData::getEmailKey($tracking_method);
 
     if (variable_get('marketo_rest_logging', FALSE)) {
       watchdog('marketo', 'Associating lead !email [@method] <pre>@data</pre>', array(
-        '!email' => $lead['email'],
+        '!email' => $lead[$email_key],
         '@method' => 'munchkin',
         '@data' => print_r($lead['data'], TRUE)), WATCHDOG_INFO);
     }
@@ -271,7 +276,7 @@ function _marketo_rest_associate_lead_munchkin($lead) {
      * Using sha1 here rather than sha256 recommended by
      * http://drupal.org/node/845876 as this is a Marketo requirement.
      */
-    $hash = hash('sha1', $key . $lead['email']);
+    $hash = hash('sha1', $key . $lead[$email_key]);
     $action = array(
       'action' => 'associateLead',
       'data' => $lead['data'],
@@ -306,16 +311,19 @@ function _marketo_rest_associate_lead_forms2($lead, $formid, $scheme = 'https', 
 
     $response = drupal_http_request($url, $options);
 
+    $tracking_method = variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT);
+    $email_key = MarketoRestData::getEmailKey($tracking_method);
+
     if ($response->code == 200) {
       if (variable_get('marketo_rest_logging', FALSE)) {
         watchdog('marketo', 'Associating lead !email [forms2] <pre>@data</pre>', array(
-          '!email' => $lead['email'],
+          '!email' => $lead[$email_key],
           '@data' => print_r($lead['data'], TRUE)), WATCHDOG_INFO);
       }
     }
     else {
       watchdog('marketo', 'Unable to sync lead !email [forms2] <pre>@error</pre> Request: <pre>@request</pre> Response: <pre>@response</pre>', array(
-          '!email' => $lead['email'],
+          '!email' => $lead[$email_key],
           '@error' => $response->error,
           '@request' => $response->request,
           '@response' => $response->code . ' ' . $response->status_message,
@@ -352,10 +360,14 @@ function _marketo_rest_associate_lead_rest($lead) {
       _marketo_rest_persist_access_token($client->getAccessToken($rest_token), $client->getAccessTokenExpiry());
       $input = (object) $lead['data'];
       $sync = $client->syncLead(array($input));
+
+      $tracking_method = variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT);
+      $email_key = MarketoRestData::getEmailKey($tracking_method);
+
       if ($sync['success']) {
         if (variable_get('marketo_rest_logging', FALSE)) {
           watchdog('marketo', 'Associating lead !email [rest] <pre>@data @result</pre>', array(
-            '!email' => $lead['email'],
+            '!email' => $lead[$email_key],
             '@data' => print_r($lead['data'], TRUE),
             '@result' => print_r($sync['result'], TRUE),
             ), WATCHDOG_INFO);
@@ -363,7 +375,7 @@ function _marketo_rest_associate_lead_rest($lead) {
       }
       else {
         watchdog('marketo', 'Unable to sync lead !email [rest] <pre>@error</pre> Request XML: <pre>@request</pre> Response XML: <pre>@response</pre>', array(
-          '!email' => $lead['email'],
+          '!email' => $lead[$email_key],
           '@error' => $sync['result'],
           '@request' => $client->getLastRequest(),
           '@response' => $client->getLastResponse(),
@@ -371,7 +383,7 @@ function _marketo_rest_associate_lead_rest($lead) {
       }
     }
     catch (Exception $e) {
-      watchdog('marketo', 'Unable to sync lead !email [rest] <pre>@error</pre>', array('!email' => $lead['email'], '@error' => $e->getMessage()), WATCHDOG_ERROR);
+      watchdog('marketo', 'Unable to sync lead !email [rest] <pre>@error</pre>', array('!email' => $lead[$email_key], '@error' => $e->getMessage()), WATCHDOG_ERROR);
     }
   }
   return $client;
@@ -388,8 +400,11 @@ function _marketo_rest_associate_lead_rest($lead) {
  */
 function _marketo_rest_queue_lead($lead) {
   if (variable_get('marketo_rest_logging', FALSE)) {
+    $tracking_method = variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT);
+    $email_key = MarketoRestData::getEmailKey($tracking_method);
+
     watchdog('marketo', 'Queuing lead !email [@method] <pre>@data</pre>', array(
-      '!email' => $lead['email'],
+      '!email' => $lead[$email_key],
       '@method' => 'queued',
       '@data' => print_r($lead['data'], TRUE)), WATCHDOG_INFO);
   }

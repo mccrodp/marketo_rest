@@ -59,7 +59,8 @@ function marketo_rest_rules_action_add_lead($account, $data) {
       $r = explode("|", $row);
       $output[$r[0]] = $r[1];
     }
-    marketo_rest_add_lead($account->mail, $output);
+    $marketo_data = new MarketoRestData($output, variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT));
+    marketo_rest_add_lead($account->mail, $marketo_data);
   }
 }
 
