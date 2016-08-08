@@ -150,7 +150,7 @@ function _marketo_rest_webform_save_webform($form, &$form_state) {
           'cid' => $cid,
         ))
         ->fields(array(
-          MARKETO_REST_WEBFORM_COMPONENT_KEY => $marketo,
+          MARKETO_REST_LEAD_FIELD_ID => $marketo,
         ))
         ->execute();
     }
