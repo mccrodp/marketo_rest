@@ -2,7 +2,7 @@
   Drupal.behaviors.marketo_rest = {
     attach: function(context, settings) {
       // Only load Marketo Once.
-      $(document).once('marketo', function() {
+      $('body').once('marketo', function() {
         // Only track Marketo if the setting is enabled.
         if (typeof settings.marketo_rest !== 'undefined' && settings.marketo_rest.track) {
           jQuery.ajax({
