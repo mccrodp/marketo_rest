@@ -73,7 +73,7 @@ function marketo_rest_webform_settings_form($form, &$form_state, $node) {
 
   $default_options = array(MARKETO_REST_WEBFORM_COMPONENT_NONE => '- None -');
   $marketo_options = _marketo_rest_get_field_options();
-  $options = array_merge($default_options, $marketo_options);
+  $options = $default_options + $marketo_options;
   $fieldmap = _marketo_rest_webform_get_mapped_fields($node->nid);
   foreach ($node->webform['components'] as $cid => $component) {
     $form['components'][$cid] = array(
