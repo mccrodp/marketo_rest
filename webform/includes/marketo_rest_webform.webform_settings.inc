@@ -84,9 +84,8 @@ function marketo_rest_webform_settings_form($form, &$form_state, $node) {
     );
     if (array_key_exists($cid, $fieldmap)) {
       if (!array_key_exists($fieldmap[$cid], $options)) {
-        $form['components'][$cid]['#options'] = array_merge(
-          array($fieldmap[$cid] => "Undefined Field ($fieldmap[$cid])"), $options
-        );
+        $form['components'][$cid]['#options'] =
+          array($fieldmap[$cid] => "Undefined Field ($fieldmap[$cid])") + $options;
       }
       $form['components'][$cid]['#default_value'] = $fieldmap[$cid];
     }
@@ -161,7 +160,7 @@ function _marketo_rest_webform_save_webform($form, &$form_state) {
 
 /**
  * Theme function for formatting user profile fieldmap form.
- * 
+ *
  * @param array $vars
  *   element: Form element
  */
