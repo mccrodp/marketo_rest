@@ -179,7 +179,7 @@ class MarketoRestData implements MarketoData {
             ->fetchAll();
           // Cycle through the result row(s) and set the new munchkin field key.
           foreach ($result as $field) {
-            if (isset($formatted_data[$field->{MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY}])) {
+            if (isset($field->{MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY})) {
               $formatted_data[$field->{MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY}] = $value;
             }
           }
