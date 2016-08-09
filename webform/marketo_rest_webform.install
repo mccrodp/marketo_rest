@@ -55,10 +55,12 @@ function marketo_rest_webform_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      MARKETO_REST_WEBFORM_COMPONENT_KEY => array(
-        'description' => 'The Marketo form field.',
-        'type' => 'varchar',
-        'length' => 128,
+      MARKETO_REST_LEAD_FIELD_ID => array(
+        'description' => 'The Marketo identifier of a field.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
       ),
     ),
   );

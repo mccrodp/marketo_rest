@@ -133,8 +133,9 @@ function marketo_rest_user_user_login(&$edit, $account) {
   $triggers = variable_get('marketo_rest_user_triggers', array());
   if (array_key_exists('login', $triggers) && $triggers['login'] && isset($account->mail)) {
     $data = _marketo_rest_user_get_mapped_fields($account);
-    $data['email'] = $account->mail;
-    marketo_rest_add_lead($account->mail, $data);
+    $marketo_data = new MarketoRestData($data, variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT));
+    $marketo_data->setEmailAddress($account->mail);
+    marketo_rest_add_lead($account->mail, $marketo_data);
   }
 }
 
@@ -145,8 +146,9 @@ function marketo_rest_user_user_insert(&$edit, $account, $category) {
   $triggers = variable_get('marketo_rest_user_triggers', array());
   if (array_key_exists('insert', $triggers) && $triggers['insert'] && isset($account->mail)) {
     $data = _marketo_rest_user_get_mapped_fields($account);
-    $data['email'] = $account->mail;
-    marketo_rest_add_lead($account->mail, $data);
+    $marketo_data = new MarketoRestData($data, variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT));
+    $marketo_data->setEmailAddress($account->mail);
+    marketo_rest_add_lead($account->mail, $marketo_data);
   }
 }
 
@@ -160,8 +162,9 @@ function marketo_rest_user_user_update(&$edit, $account, $category) {
     // See https://api.drupal.org/comment/23088#comment-23088
     // When email changes, can we create a new lead then merge the two?
     $data = _marketo_rest_user_get_mapped_fields($account);
-    $data['email'] = $account->mail;
-    marketo_rest_add_lead($account->mail, $data);
+    $marketo_data = new MarketoRestData($data, variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT));
+    $marketo_data->setEmailAddress($account->mail);
+    marketo_rest_add_lead($account->mail, $marketo_data);
   }
 }
 
@@ -231,7 +234,7 @@ function _marketo_rest_user_display_lead($account) {
   return theme('marketo_rest_user_lead', array(
     'lead' => $leads,
     'email' => $account->mail,
-    'fields' => _marketo_rest_get_field_options(FALSE, FALSE),
+    'fields' => _marketo_rest_get_field_options(),
   ));
 }
 

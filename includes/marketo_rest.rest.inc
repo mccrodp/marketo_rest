@@ -758,8 +758,14 @@ class MarketoRestClient implements MarketoRestInterface {
     if (!empty($result['result'])) {
       $fields = array();
       foreach ($result['result'] as $field) {
-        if (!empty($field['rest']['name'])) {
-          $fields[$field['rest']['name']] = $field;
+        if (!empty($field['id'])) {
+          $fields[$field['id']] = array(
+            MARKETO_REST_LEAD_FIELD_ID => $field['id'],
+            'name' => isset($field['displayName']) ? $field['displayName'] : '',
+            MARKETO_REST_LEAD_FIELD_REST_KEY => isset($field['rest']['name']) ? $field['rest']['name'] : '',
+            MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY => isset($field['soap']['name']) ? $field['soap']['name'] : '',
+            'enabled' => 0,
+          );
         }
       }
       return $fields;

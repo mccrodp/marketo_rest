@@ -146,46 +146,6 @@ function marketo_rest_admin_settings_form($form, &$form_state) {
     '#required' => FALSE,
   );
 
-  $form['marketo_rest_tabs']['marketo_rest_fields'] = array(
-    '#title' => t('Field Definition'),
-    '#type' => 'fieldset',
-    '#description' => t('The fields defined here will be available for mapping to Webform and User Profile fields'),
-  );
-  $form['marketo_rest_tabs']['marketo_rest_fields']['marketo_rest_webform_fields'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Marketo fields'),
-    '#wysiwyg' => FALSE,
-    '#description' => t('Pipe "|" delimited strings of [API Name]|[Friendly Label]. Enter one field per line. This information can be found in the Marketo admin page at Admin > Field Management > Export Field Names.<p>Once REST API settings have been configured, these fields can be automatically obtained from Marketo using the button below</p>'),
-    '#rows' => 10,
-    '#prefix' => '<div id="marketo-webform-fields-wrapper">',
-    '#suffix' => '</div>',
-  );
-
-  if (isset($form_state['triggering_element']['#array_parents']) && in_array('marketo_rest_webform_fields_rest', $form_state['triggering_element']['#array_parents'])) {
-    $data = _marketo_rest_get_fields();
-    $mwf_default = "";
-    foreach ($data as $key => $value) {
-      $mwf_default .= $key . "|" . $value['displayName'] . "\n";
-    }
-    $form['marketo_rest_tabs']['marketo_rest_fields']['marketo_rest_webform_fields']['#value'] = $mwf_default;
-  }
-  else {
-    $form['marketo_rest_tabs']['marketo_rest_fields']['marketo_rest_webform_fields']['#default_value'] = variable_get('marketo_rest_webform_fields', MARKETO_REST_WEBFORM_FIELD_DEFAULTS);
-  }
-
-  $form['marketo_rest_tabs']['marketo_rest_fields']['marketo_rest_webform_fields_rest'] = array(
-    '#type' => 'button',
-    '#value' => t('Retrieve from Marketo'),
-    '#ajax' => array(
-      'callback' => '_marketo_rest_webform_fields_rest_callback',
-      'wrapper' => 'marketo-webform-fields-wrapper',
-    ),
-  );
-  // If REST settings have not been configured, the button should be disabled.
-  if (!_marketo_rest_rest_is_configured()) {
-    $form['marketo_rest_tabs']['marketo_rest_fields']['marketo_rest_webform_fields_rest']['#disabled'] = TRUE;
-  }
-
   $form['marketo_rest_tabs']['marketo_rest_page_vis'] = array(
     '#title' => t('Page Visibility'),
     '#type' => 'fieldset',
@@ -282,6 +242,87 @@ function marketo_rest_admin_settings_form_validate($form, &$form_state) {
 }
 
 /**
+ * Builds and returns the Marketo field definition settings form.
+ *
+ * @param $form
+ * @param $form_state
+ * @return mixed
+ */
+function marketo_rest_field_definition_form($form, &$form_state) {
+
+  $form['marketo_rest_fields'] = array(
+    '#title' => t('Field Definition'),
+    '#type' => 'fieldset',
+    '#description' => t('Enable / disable the fields defined here for mapping to Webform and User Profile fields.'),
+  );
+
+  $field_definitions = _marketo_rest_get_field_definitions();
+  $field_options = _marketo_rest_get_field_tableselect_options($field_definitions);
+
+  if (isset($form_state['triggering_element']['#array_parents']) && in_array('marketo_rest_lead_fields_rest', $form_state['triggering_element']['#array_parents'])) {
+    $marketo_fields = _marketo_rest_get_fields();
+    // Make field data accessible to callback.
+    $form['#marketo-fields'] = $marketo_fields;
+    $field_options += $marketo_fields; // Only merge new array keys.
+  }
+
+  $field_values = array();
+
+  // When we have fields, get enabled / disabled values.
+  if (!empty($field_options)) {
+    $field_values = _marketo_rest_get_field_tableselect_values($field_definitions);
+  }
+
+  $form['marketo_rest_fields']['marketo_rest_lead_fields'] = array(
+    '#type' => 'tableselect',
+    '#header' => array(
+      MARKETO_REST_LEAD_FIELD_ID => t('Marketo ID'),
+      'name' => t('Display name'),
+      MARKETO_REST_LEAD_FIELD_REST_KEY => t('REST key'),
+      MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY => t('Munchkin key'),
+    ),
+    '#options' => $field_options,
+    '#default_value' => $field_values,
+    '#prefix' => '<div id="marketo-lead-fields-wrapper">',
+    '#suffix' => '</div>',
+  );
+
+  $form['marketo_rest_fields']['marketo_rest_lead_fields_rest'] = array(
+    '#type' => 'button',
+    '#value' => t('Retrieve from Marketo'),
+    '#ajax' => array(
+      'callback' => '_marketo_rest_webform_fields_rest_callback',
+      'wrapper' => 'marketo-lead-fields-wrapper',
+    ),
+  );
+
+  // If REST settings have not been configured, the button should be disabled.
+  if (!_marketo_rest_rest_is_configured()) {
+    $form['marketo_rest_fields']['marketo_rest_lead_fields_rest']['#disabled'] = TRUE;
+  }
+
+  // Add a submit handler.
+  $form['#submit'][] = 'marketo_rest_field_definition_form_submit';
+
+  return system_settings_form($form);
+}
+
+/**
+ * Form definition submit callback.
+ *
+ * @param $form
+ * @param $form_state
+ */
+function marketo_rest_field_definition_form_submit($form, &$form_state) {
+  // When we have retrieved marketo fields, we may need to map new fields.
+  if (!empty($form['#marketo-fields'])) {
+    _marketo_rest_sync_field_definitions($form_state['values']['marketo_rest_lead_fields'], $form['#marketo-fields']);
+  }
+  _marketo_rest_sync_field_definitions($form_state['values']['marketo_rest_lead_fields']);
+}
+
+
+/**
  * Performs validation for Marketo REST API settings.
  * 
  * @param string $client_id
@@ -318,5 +359,5 @@ function _marketo_rest_validate_rest_configuration($client_id, $client_secret, $
  * Callback for updating webform fields.
  */
 function _marketo_rest_webform_fields_rest_callback($form, &$form_state) {
-  return $form['marketo_rest_tabs']['marketo_rest_fields']['marketo_rest_webform_fields'];
+  return $form['marketo_rest_fields']['marketo_rest_lead_fields'];
 }

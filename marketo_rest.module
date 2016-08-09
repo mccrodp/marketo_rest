@@ -18,14 +18,17 @@ define('MARKETO_REST_PAGING_TOKEN_API', 'activities/pagingtoken.json');
 
 define('MARKETO_REST_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");
 define('MARKETO_REST_TRACKING_METHOD_DEFAULT', 'munchkin');
-define('MARKETO_REST_WEBFORM_FIELD_DEFAULTS', "firstName|First Name\nlastName|Last Name\nemail|Email Address");
+
+define('MARKETO_REST_SCHEMA_LEAD_FIELDS', 'marketo_rest_lead_fields');
+define('MARKETO_REST_LEAD_FIELD_ID', 'marketo_id');
+define('MARKETO_REST_LEAD_FIELD_REST_KEY', 'marketo_rest_key');
+define('MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY', 'marketo_munchkin_key');
 
 define('MARKETO_REST_SCHEMA_WEBFORM', 'marketo_rest_webform');
 define('MARKETO_REST_WEBFORM_FIELD_ACTIVE', 'is_active');
 define('MARKETO_REST_WEBFORM_OPTIONS', 'options');
 
 define('MARKETO_REST_SCHEMA_WEBFORM_COMPONENT', 'marketo_rest_webform_component');
-define('MARKETO_REST_WEBFORM_COMPONENT_KEY', 'marketo_rest_key');
 define('MARKETO_REST_WEBFORM_COMPONENT_NONE', 'none');
 
 /**
@@ -41,6 +44,25 @@ function marketo_rest_menu() {
     'access arguments' => array('administer marketo'),
     'file' => 'includes/marketo_rest.admin.inc',
   );
+
+  // Module settings.
+  $items['admin/config/search/marketo_rest/basic'] = array(
+    'title' => 'Marketo REST',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10
+  );
+
+  // Field definition form.
+  $items['admin/config/search/marketo_rest/field_definition'] = array(
+    'title' => 'Field Definition',
+    'description' => 'Marketo REST field definition',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('marketo_rest_field_definition_form'),
+    'access arguments' => array('administer marketo'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'includes/marketo_rest.admin.inc',
+  );
+
   return $items;
 }
 
@@ -73,7 +95,7 @@ function marketo_rest_cron_queue_info() {
  * 
  * @param string $email
  *   A valid email address for this lead
- * @param array $data
+ * @param MarketoRestData $marketo_data
  *   Key value pairs of data to be associated with this lead
  * @param bool $merge
  *   If TRUE, $data will be merged if $email already exists else $data will
@@ -84,12 +106,13 @@ function marketo_rest_cron_queue_info() {
  * @return bool
  *   Returns TRUE upon completion
  */
-function marketo_rest_add_lead($email, $data = array(), $merge = FALSE, $options = array()) {
+function marketo_rest_add_lead($email, MarketoRestData $marketo_data, $merge = FALSE, $options = array()) {
   $options += array(
     'tracking_method' => 'default',
   );
 
   $marketo_rest_data = array();
+  $data = $marketo_data->getFormattedData();
   if (isset($_SESSION['marketo_rest_data'])) {
     $marketo_rest_data = $_SESSION['marketo_rest_data'];
   }
@@ -100,7 +123,7 @@ function marketo_rest_add_lead($email, $data = array(), $merge = FALSE, $options
   else {
     $marketo_rest_data[$email]['data'] = $data;
   }
-  $marketo_rest_data[$email]['email'] = $email;
+  $marketo_rest_data[$email][$marketo_data->getEmailKey($marketo_data->getTrackingMethod())] = $email;
   $marketo_rest_data[$email]['options'] = $options;
 
   // Check to see if there is a default lead source we should apply.
@@ -161,9 +184,11 @@ function marketo_rest_page_alter(&$page) {
      */
     // Basic Munchkin tracking.
     _marketo_rest_output_tracking_code();
+    $tracking_method = variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT);
+    $email_key = MarketoRestData::getEmailKey($tracking_method);
 
     foreach ($marketo_rest_data as $lead) {
-      if (array_key_exists('email', $lead)) {
+      if (array_key_exists($email_key, $lead)) {
         _marketo_rest_associate_lead($lead);
       }
     }
@@ -238,10 +263,12 @@ function _marketo_rest_associate_lead($lead) {
 function _marketo_rest_associate_lead_munchkin($lead) {
   if (_marketo_rest_munchkin_is_configured()) {
     $key = variable_get('marketo_rest_munchkin_api_private_key', NULL);
+    $tracking_method = variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT);
+    $email_key = MarketoRestData::getEmailKey($tracking_method);
 
     if (variable_get('marketo_rest_logging', FALSE)) {
       watchdog('marketo', 'Associating lead !email [@method] <pre>@data</pre>', array(
-        '!email' => $lead['email'],
+        '!email' => $lead[$email_key],
         '@method' => 'munchkin',
         '@data' => print_r($lead['data'], TRUE)), WATCHDOG_INFO);
     }
@@ -249,7 +276,7 @@ function _marketo_rest_associate_lead_munchkin($lead) {
      * Using sha1 here rather than sha256 recommended by
      * http://drupal.org/node/845876 as this is a Marketo requirement.
      */
-    $hash = hash('sha1', $key . $lead['email']);
+    $hash = hash('sha1', $key . $lead[$email_key]);
     $action = array(
       'action' => 'associateLead',
       'data' => $lead['data'],
@@ -284,16 +311,19 @@ function _marketo_rest_associate_lead_forms2($lead, $formid, $scheme = 'https', 
 
     $response = drupal_http_request($url, $options);
 
+    $tracking_method = variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT);
+    $email_key = MarketoRestData::getEmailKey($tracking_method);
+
     if ($response->code == 200) {
       if (variable_get('marketo_rest_logging', FALSE)) {
         watchdog('marketo', 'Associating lead !email [forms2] <pre>@data</pre>', array(
-          '!email' => $lead['email'],
+          '!email' => $lead[$email_key],
           '@data' => print_r($lead['data'], TRUE)), WATCHDOG_INFO);
       }
     }
     else {
       watchdog('marketo', 'Unable to sync lead !email [forms2] <pre>@error</pre> Request: <pre>@request</pre> Response: <pre>@response</pre>', array(
-          '!email' => $lead['email'],
+          '!email' => $lead[$email_key],
           '@error' => $response->error,
           '@request' => $response->request,
           '@response' => $response->code . ' ' . $response->status_message,
@@ -330,10 +360,14 @@ function _marketo_rest_associate_lead_rest($lead) {
       _marketo_rest_persist_access_token($client->getAccessToken($rest_token), $client->getAccessTokenExpiry());
       $input = (object) $lead['data'];
       $sync = $client->syncLead(array($input));
+
+      $tracking_method = variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT);
+      $email_key = MarketoRestData::getEmailKey($tracking_method);
+
       if ($sync['success']) {
         if (variable_get('marketo_rest_logging', FALSE)) {
           watchdog('marketo', 'Associating lead !email [rest] <pre>@data @result</pre>', array(
-            '!email' => $lead['email'],
+            '!email' => $lead[$email_key],
             '@data' => print_r($lead['data'], TRUE),
             '@result' => print_r($sync['result'], TRUE),
             ), WATCHDOG_INFO);
@@ -341,7 +375,7 @@ function _marketo_rest_associate_lead_rest($lead) {
       }
       else {
         watchdog('marketo', 'Unable to sync lead !email [rest] <pre>@error</pre> Request XML: <pre>@request</pre> Response XML: <pre>@response</pre>', array(
-          '!email' => $lead['email'],
+          '!email' => $lead[$email_key],
           '@error' => $sync['result'],
           '@request' => $client->getLastRequest(),
           '@response' => $client->getLastResponse(),
@@ -349,7 +383,7 @@ function _marketo_rest_associate_lead_rest($lead) {
       }
     }
     catch (Exception $e) {
-      watchdog('marketo', 'Unable to sync lead !email [rest] <pre>@error</pre>', array('!email' => $lead['email'], '@error' => $e->getMessage()), WATCHDOG_ERROR);
+      watchdog('marketo', 'Unable to sync lead !email [rest] <pre>@error</pre>', array('!email' => $lead[$email_key], '@error' => $e->getMessage()), WATCHDOG_ERROR);
     }
   }
   return $client;
@@ -366,8 +400,11 @@ function _marketo_rest_associate_lead_rest($lead) {
  */
 function _marketo_rest_queue_lead($lead) {
   if (variable_get('marketo_rest_logging', FALSE)) {
+    $tracking_method = variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT);
+    $email_key = MarketoRestData::getEmailKey($tracking_method);
+
     watchdog('marketo', 'Queuing lead !email [@method] <pre>@data</pre>', array(
-      '!email' => $lead['email'],
+      '!email' => $lead[$email_key],
       '@method' => 'queued',
       '@data' => print_r($lead['data'], TRUE)), WATCHDOG_INFO);
   }
@@ -379,30 +416,83 @@ function _marketo_rest_queue_lead($lead) {
 
 /**
  * Returns defined fields as an associative array useful for select options.
- * 
+ *
+ * @param null $fields
+ * @param bool $sort
  * @return array
  *   Key/value pairs of defined Marketo fields
  */
-function _marketo_rest_get_field_options($labels = TRUE, $sort = TRUE) {
-  /*
-   * marketo_rest_webform_fields is multi-line, pipe "|" delimited data
-   * which needs to be parsed. First split it into rows of data.
-   */
-  $raw_options = preg_split('/(\r\n?|\n)/', trim(variable_get('marketo_rest_webform_fields', MARKETO_REST_WEBFORM_FIELD_DEFAULTS)));
+function _marketo_rest_get_field_options($fields = null, $sort = TRUE) {
+
   $options = array();
 
-  // Loop over all the rows getting the keys and values for the fields.
-  foreach ($raw_options as $row) {
-    $field = explode('|', trim($row));
-    if ($labels) {
-      $options[trim($field[0])] = trim($field[1]) . ' (' . trim($field[0]) . ')';
-    }
-    else {
-      $options[trim($field[0])] = trim($field[1]);
-    }
+  // Get field definitions if not passed as an arg.
+  if (!$fields) {
+    $fields = _marketo_rest_get_field_definitions();
   }
+
+  // Cycle through each field return the marketo field id => display name array.
+  foreach ($fields as $id => $field) {
+    $options[$id] = $field->name;
+  }
+
   if ($sort) {
     asort($options);
+  }
+
+  return $options;
+}
+
+/**
+ * Returns defined field values as a marketo_id|value array.
+ *
+ * @return array
+ *   Key/value pairs of defined Marketo fields
+ */
+function _marketo_rest_get_field_tableselect_values($fields = null) {
+
+  $values = array();
+  // Get field definitions if not passed as an arg.
+  if (!$fields) {
+    $fields = _marketo_rest_get_field_definitions();
+  }
+
+  // Cycle through each field return the marketo field id => enabled array.
+  foreach ($fields as $id => $field) {
+    $value = 0;
+    if ($field->enabled) {
+      $value = $id;
+    }
+    $values[$id] = $value;
+  }
+
+  return $values;
+}
+
+/**
+ * Returns defined fields as an associative for tableselect list options.
+ *
+ * @return array
+ *   Key/value pairs of defined Marketo fields
+ */
+function _marketo_rest_get_field_tableselect_options($fields = null) {
+
+  $options = array();
+
+  // Get field definitions if not passed as an arg.
+  if (!$fields) {
+    $fields = _marketo_rest_get_field_definitions();
+  }
+
+  // Cycle through each field returning the tableselect field values.
+  foreach ($fields as $id => $field) {
+    $options[$id] = array(
+      MARKETO_REST_LEAD_FIELD_ID => $id,
+      'name' => isset($field->name) ? $field->name : '',
+      MARKETO_REST_LEAD_FIELD_REST_KEY => isset($field->marketo_rest_key) ? $field->marketo_rest_key : '',
+      MARKETO_REST_LEAD_FIELD_MUNCHKIN_KEY => isset($field->marketo_munchkin_key) ? $field->marketo_munchkin_key : '',
+      'enabled' => $field->enabled,
+    );
   }
 
   return $options;
@@ -727,4 +817,61 @@ function _marketo_rest_rest_proxy_settings() {
  */
 function _marketo_rest_persist_access_token($access_token, $expiry) {
   variable_set('marketo_rest_token', array('access_token' => $access_token, 'expiry' => $expiry));
+}
+
+/**
+ * Sync the lead field names in the database.
+ *
+ * @param array $values
+ * @param array|NULL $fields
+ */
+function _marketo_rest_sync_field_definitions(array $values, array $fields = null) {
+  // When we have marketo fields array, merge fields in db.
+  if (!empty($fields) && is_array($fields)) {
+    foreach ($fields as $id => $field) {
+      db_merge(MARKETO_REST_SCHEMA_LEAD_FIELDS)
+        ->key(array(MARKETO_REST_LEAD_FIELD_ID => $id))
+        ->fields($field)
+        ->execute();
+    }
+  } else {
+    // When we are updating existing fields in the db only.
+    foreach ($values as $id => $value) {
+      db_update(MARKETO_REST_SCHEMA_LEAD_FIELDS)
+        ->fields(array(
+          'enabled' => !empty($value) ? 1 : 0,
+        ))
+        ->condition(MARKETO_REST_LEAD_FIELD_ID, $id)
+        ->execute();
+    }
+  }
+}
+
+/**
+ * Get the field definition data.
+ *
+ * @return array
+ */
+function _marketo_rest_get_field_definitions() {
+  $data = array();
+  $result = db_select(MARKETO_REST_SCHEMA_LEAD_FIELDS, 'f')
+    ->fields('f')
+    ->execute()
+    ->fetchAll();
+  foreach ($result as $field) {
+    $data[$field->{MARKETO_REST_LEAD_FIELD_ID}] = $field;
+  }
+
+  return $data;
+}
+
+/**
+ * Merge existing field definitions with fields retrieved from Marketo.
+ *
+ * @param $field_options
+ * @param $marketo_fields
+ * @return array
+ */
+function _marketo_rest_merge_field_options($field_options, $marketo_fields) {
+  return array_merge($field_options, $marketo_fields);
 }

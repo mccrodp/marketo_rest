@@ -691,8 +691,8 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
         ),
       ),
       2 => array(
-        'name' => 'Last name',
-        'form_key' => 'marketo_rest_last_name',
+        'name' => 'Company name',
+        'form_key' => 'marketo_rest_company_name',
         'type' => 'textfield',
         'mandatory' => 1,
         'weight' => 5,
@@ -703,8 +703,8 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
         ),
       ),
       3 => array(
-        'name' => 'First name',
-        'form_key' => 'marketo_rest_first_name',
+        'name' => 'Website URL',
+        'form_key' => 'marketo_rest_site',
         'type' => 'textfield',
         'mandatory' => 1,
         'weight' => 10,
@@ -838,7 +838,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
       ))
       ->execute();
 
-    // Set the component id to map to Marketo field name.
+    // Set the component id to map to Marketo id.
     foreach ($form['components'] as $cid => $marketo) {
       db_merge(MARKETO_REST_SCHEMA_WEBFORM_COMPONENT)
         ->key(array(
@@ -846,7 +846,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
           'cid' => $cid,
         ))
         ->fields(array(
-          MARKETO_REST_WEBFORM_COMPONENT_KEY => $marketo['#default_value'],
+          MARKETO_REST_LEAD_FIELD_ID => $marketo['#default_value'],
         ))
         ->execute();
     }
@@ -883,8 +883,11 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
         // Basic Munchkin tracking.
         _marketo_rest_output_tracking_code();
 
+        $tracking_method = variable_get('marketo_rest_tracking_method', MARKETO_REST_TRACKING_METHOD_DEFAULT);
+        $email_key = MarketoRestData::getEmailKey($tracking_method);
+
         foreach ($marketo_rest_data as $lead) {
-          if (array_key_exists('email', $lead)) {
+          if (array_key_exists($email_key, $lead)) {
             $this->client = _marketo_rest_associate_lead_rest($lead);
           }
         }
@@ -937,6 +940,65 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
     try {
       if (!empty($this->data->nid)) {
         node_delete($this->data->nid);
+      }
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+  }
+
+  /**
+   * @Then /^I should see have field definition:$/
+   */
+  public function iShouldSeeHaveFieldDefinition(TableNode $table)
+  {
+    try {
+      $rows = $this->getAssocDataArrayObjs($table->getRows());
+      $field_definitions = _marketo_rest_get_field_definitions();
+      foreach ($rows as $fields) {
+        foreach ($fields as $key => $value) {
+          if ($field_definitions[$fields->marketo_id]->{$key} != $value) {
+            throw new Exception('Field definitions don\'t contain expected data.');
+          }
+        }
+      }
+    }
+    catch (Exception $e) {
+      throw new Exception($e->getMessage());
+    }
+  }
+
+  /**
+   * @Given /^the database table \'([^\']*)\' with primary key \'([^\']*)\' contains:$/
+   */
+  public function theDatabaseTableWithPrimaryKeyContains($arg1, $arg2, TableNode $table)
+  {
+    try {
+      $fields = $this->getAssocDataArrayObjs($table->getRows());
+      // Check if we have a table check we have an entry for our primary key.
+      foreach ($fields as $name => $field) {
+        $result = db_select($arg1, 'f')
+          ->fields('f')
+          ->condition($arg2, $field->{$arg2})
+          ->execute()
+          ->fetchAll();
+        // Add an entry if not.
+        if (empty($result)) {
+          db_insert($arg1)
+            ->fields($field)
+            ->execute();
+        }
+        else {
+          // For our lead field db test update our enabled field.
+          if ($arg1 == MARKETO_REST_SCHEMA_LEAD_FIELDS) {
+            db_update($arg1)
+              ->fields(array(
+                'enabled' => $field->enabled,
+              ))
+              ->condition($arg2, $field->{$arg2})
+              ->execute();
+          }
+        }
       }
     }
     catch (Exception $e) {
