@@ -419,16 +419,17 @@ function _marketo_rest_queue_lead($lead) {
  *
  * @param null $fields
  * @param bool $sort
+ * @param bool $enabled
  * @return array
  *   Key/value pairs of defined Marketo fields
  */
-function _marketo_rest_get_field_options($fields = null, $sort = TRUE) {
+function _marketo_rest_get_field_options($fields = NULL, $sort = TRUE, $enabled = TRUE) {
 
   $options = array();
 
   // Get field definitions if not passed as an arg.
   if (!$fields) {
-    $fields = _marketo_rest_get_field_definitions();
+    $fields = _marketo_rest_get_field_definitions($enabled);
   }
 
   // Cycle through each field return the marketo field id => display name array.
@@ -850,14 +851,21 @@ function _marketo_rest_sync_field_definitions(array $values, array $fields = nul
 /**
  * Get the field definition data.
  *
+ * @param NULL $enabled
  * @return array
  */
-function _marketo_rest_get_field_definitions() {
+function _marketo_rest_get_field_definitions($enabled = NULL) {
   $data = array();
-  $result = db_select(MARKETO_REST_SCHEMA_LEAD_FIELDS, 'f')
-    ->fields('f')
-    ->execute()
-    ->fetchAll();
+  $query = db_select(MARKETO_REST_SCHEMA_LEAD_FIELDS, 'f')
+    ->fields('f');
+
+  // Add condition for enabled state if requested.
+  if ($enabled !== NULL) {
+    $query->condition('enabled', $enabled);
+  }
+
+  $result = $query->execute()->fetchAll();
+
   foreach ($result as $field) {
     $data[$field->{MARKETO_REST_LEAD_FIELD_ID}] = $field;
   }
