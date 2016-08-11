@@ -490,7 +490,7 @@ class FeatureContext extends RawDrupalContext implements SnippetAcceptingContext
    * @Given /^I have the action \'([^\']*)\' and the lookupField: \'([^\']*)\'$/
    */
   public function iHaveTheActionAndTheLookupField($arg1, $arg2) {
-    $this->data = (object) ['action' => $arg1, 'lookupField' => $arg2];
+    $this->data = (object) array('action' => $arg1, 'lookupField' => $arg2);
   }
 
   /**

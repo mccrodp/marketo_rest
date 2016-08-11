@@ -76,11 +76,11 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
    */
   public function syncLead(array $input, $action = 'createOrUpdate', $field = null, $async = 'false', $partition = null) {
     // Generate an array of leads.
-    $params = (object) [
+    $params = (object) array(
       'input' => $input,
       'action' => $action,
       'asyncProcessing' => $async
-    ];
+    );
 
     if ($field) {
       $params->lookupField = $field;
@@ -113,12 +113,12 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
       $operation = $method;
     }
 
-    $params = (object) [
+    $params = (object) array(
       'filterType' => $type,
       'filterValues' => is_array($values) ? implode(',', $values) : $values,
       'batchSize' => $batch,
       '_method' => $method
-    ];
+    );
 
     if (!empty($fields)) {
       $params['fields'] = $fields;
@@ -235,11 +235,11 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
    */
   public function getLeadActivity($ids, $token, $lead_ids = NULL, $list_id = NULL, $batch_size = 300) {
 
-    $body = (object) [
+    $body = (object) array(
       'activityTypeIds' => $ids,
       'nextPageToken' => $token,
       'batchSize' => $batch_size,
-    ];
+    );
 
     if (!empty($list_id)) {
       $body->listId = $list_id;
@@ -326,11 +326,11 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
   private function curlCall($url, $body = null, $operation = 'GET', $api = NULL) {
     // Record the latest request.
     $this->setLastRequest(
-      (object) [
+      (object) array(
         'url' => $url,
         'body' => $body,
         'operation' => $operation,
-      ]
+      )
     );
     // For identity request get a mock token.
     if ($api == MARKETO_REST_IDENTITY_API) {
@@ -451,7 +451,7 @@ class MarketoMockClient extends MarketoRestClient implements MarketoRestInterfac
    * @throws \Exception
    */
   private function getNewPagingToken() {
-    $body = (object) ['sinceDatetime' => date(MARKETO_REST_DATE_FORMAT)];
+    $body = (object) array('sinceDatetime' => date(MARKETO_REST_DATE_FORMAT));
 
     try {
       $result = $this->request(MARKETO_REST_PAGING_TOKEN_API, $body);

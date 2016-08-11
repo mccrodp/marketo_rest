@@ -196,12 +196,12 @@ class MarketoRestClient implements MarketoRestInterface {
       $operation = $method;
     }
 
-    $body = (object) [
+    $body = (object) array(
       'filterType' => $type,
       'filterValues' => is_array($values) ? implode(',', $values) : $values,
       'batchSize' => $batch,
       '_method' => $method
-    ];
+    );
 
     if (!empty($fields)) {
       $body->fields = $fields;
@@ -265,11 +265,11 @@ class MarketoRestClient implements MarketoRestInterface {
    */
   public function getLeadActivity($ids, $token, $lead_ids = NULL, $list_id = NULL, $batch_size = 300) {
 
-    $body = (object) [
+    $body = (object) array(
       'activityTypeIds' => $ids,
       'nextPageToken' => $token,
       'batchSize' => $batch_size,
-    ];
+    );
 
     if (!empty($list_id)) {
       $body->listId = $list_id;
@@ -315,11 +315,11 @@ class MarketoRestClient implements MarketoRestInterface {
    */
   public function syncLead(array $input, $action = 'createOrUpdate', $field = NULL, $async = 'false', $partition = NULL) {
     // Generate an array of leads.
-    $params = (object) [
+    $params = (object) array(
       'input' => $input,
       'action' => $action,
       'asyncProcessing' => $async
-    ];
+    );
 
     if ($field) {
       $params->lookupField = $field;
@@ -376,11 +376,11 @@ class MarketoRestClient implements MarketoRestInterface {
    */
   public function getIdentityTokenOptions() {
     // Query Marketo for token.
-    return (object) [
+    return (object) array(
       'client_id' => $this->client_id,
       'client_secret' => $this->client_secret,
       'grant_type' => 'client_credentials',
-    ];
+    );
   }
 
   /**
@@ -713,11 +713,11 @@ class MarketoRestClient implements MarketoRestInterface {
     curl_getinfo($ch);
     // Record the latest request.
     $this->setLastRequest(
-      (object) [
+      (object) array(
         'url' => $url,
         'body' => $body,
         'operation' => $operation,
-      ]
+      )
     );
 
     $response = curl_exec($ch);
@@ -734,7 +734,7 @@ class MarketoRestClient implements MarketoRestInterface {
    * @throws \Exception
    */
   private function getNewPagingToken() {
-    $body = (object) ['sinceDatetime' => date(MARKETO_REST_DATE_FORMAT)];
+    $body = (object) array('sinceDatetime' => date(MARKETO_REST_DATE_FORMAT));
 
     try {
       $result = $this->request(MARKETO_REST_PAGING_TOKEN_API, $body);
